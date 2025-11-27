@@ -5,6 +5,7 @@ const { validateBody } = require("../../decorators/index");
 const {
   userSignupSchema,
   userSigninSchema,
+  userUpdateUsernameSchema,
 } = require("../../schemas/user-schemas");
 const { authenticate } = require("../../middlewares/index");
 
@@ -23,6 +24,13 @@ authRouter.post(
 );
 
 authRouter.get("/current", authenticate, authController.getCurrent);
+
+authRouter.patch(
+  "/username",
+  authenticate,
+  validateBody(userUpdateUsernameSchema),
+  authController.updateUsername
+);
 
 authRouter.post("/logout", authenticate, authController.signout);
 

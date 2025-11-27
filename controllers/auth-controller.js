@@ -82,6 +82,24 @@ const getCurrent = async (req, res) => {
   res.json({ username, email });
 };
 
+const updateUsername = async (req, res) => {
+  const { _id } = req.user;
+  const { username } = req.body;
+
+  const updatedUser = await User.findByIdAndUpdate(
+    _id,
+    { username },
+    { new: true }
+  );
+  if (!updatedUser) {
+    throw HttpError(404, "User not found");
+  }
+
+  res.json({
+    username: updatedUser.username,
+  });
+};
+
 const signout = async (req, res) => {
   const { _id } = req.user;
   await User.findByIdAndUpdate(_id, { token: "" });
@@ -93,5 +111,6 @@ module.exports = {
   verify: ctrlWrapper(verify),
   signin: ctrlWrapper(signin),
   getCurrent: ctrlWrapper(getCurrent),
+  updateUsername: ctrlWrapper(updateUsername),
   signout: ctrlWrapper(signout),
 };
