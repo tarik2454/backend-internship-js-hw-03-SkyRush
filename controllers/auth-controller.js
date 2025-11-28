@@ -78,30 +78,38 @@ const signin = async (req, res) => {
 };
 
 const getCurrent = async (req, res) => {
-  const { username, email } = req.user;
-  res.json({ username, email });
+  const { username, email, balance, totalWagered, gamesPlayed, totalWon } =
+    req.user;
+
+  res.json({
+    username,
+    email,
+    balance,
+    totalWagered,
+    gamesPlayed,
+    totalWon,
+  });
 };
 
-const updateUsername = async (req, res) => {
-  const { _id } = req.user;
-  const { username } = req.body;
+const updateUser = async (req, res) => {
+  const { username, balance, totalWagered, gamesPlayed, totalWon } = req.body;
 
-  if (!username?.trim()) {
-    throw HttpError(400, "Username is required");
-  }
+  const updateData = {};
+  if (username) updateData.username = username;
+  if (balance !== undefined) updateData.balance = balance;
+  if (totalWagered !== undefined) updateData.totalWagered = totalWagered;
+  if (gamesPlayed !== undefined) updateData.gamesPlayed = gamesPlayed;
+  if (totalWon !== undefined) updateData.totalWon = totalWon;
 
-  const updatedUser = await User.findByIdAndUpdate(
-    _id,
-    { username },
-    { new: true }
-  );
-  if (!updatedUser) {
+  const updated = await User.findByIdAndUpdate(req.user._id, updateData, {
+    new: true,
+  }).select("username email balance totalWagered gamesPlayed totalWon");
+
+  if (!updated) {
     throw HttpError(404, "User not found");
   }
 
-  res.json({
-    username: updatedUser.username,
-  });
+  res.json(updated);
 };
 
 const signout = async (req, res) => {
@@ -115,6 +123,6 @@ module.exports = {
   verify: ctrlWrapper(verify),
   signin: ctrlWrapper(signin),
   getCurrent: ctrlWrapper(getCurrent),
-  updateUsername: ctrlWrapper(updateUsername),
+  updateUser: ctrlWrapper(updateUser),
   signout: ctrlWrapper(signout),
 };

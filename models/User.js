@@ -23,9 +23,21 @@ const userSchema = new Schema(
       required: [true, "Set password for user"],
     },
     token: { type: String },
-    verificationToken: {
-      type: String,
-      required: [true, "Verify token is required"],
+    balance: {
+      type: Number,
+      default: 0,
+    },
+    totalWagered: {
+      type: Number,
+      default: 0,
+    },
+    gamesPlayed: {
+      type: Number,
+      default: 0,
+    },
+    totalWon: {
+      type: Number,
+      default: 0,
     },
   },
   { versionKey: false, timestamps: true }
