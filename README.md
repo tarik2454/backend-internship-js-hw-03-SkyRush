@@ -57,13 +57,15 @@ npm start
 
 ## API Endpoints
 
-Базовый URL: `http://localhost:3000/api/users`
+Базовый URL: `http://localhost:3000/api`
 
 ### Аутентификация
 
+Базовый путь: `/auth`
+
 #### Регистрация нового пользователя
 
-**POST** `/register`
+**POST** `/auth/register`
 
 Создает нового пользователя в системе.
 
@@ -111,7 +113,7 @@ Content-Type: application/json
 
 #### Вход в систему
 
-**POST** `/login`
+**POST** `/auth/login`
 
 Авторизует пользователя и возвращает JWT токен.
 
@@ -156,7 +158,7 @@ Content-Type: application/json
 
 #### Выход из системы
 
-**POST** `/logout`
+**POST** `/auth/logout`
 
 Выходит из системы, очищая токен пользователя.
 
@@ -185,11 +187,13 @@ Content-Type: application/json
 
 ### Пользователи
 
+Базовый путь: `/users`
+
 Все эндпоинты пользователей требуют авторизации через JWT токен.
 
 #### Получить текущего пользователя
 
-**GET** `/current`
+**GET** `/users/current`
 
 Возвращает информацию о текущем авторизованном пользователе.
 
@@ -259,7 +263,7 @@ Authorization: Bearer <token>
 
 #### Обновить данные пользователя
 
-**PATCH** `/update`
+**PATCH** `/users/update`
 
 Обновляет информацию о текущем пользователе.
 

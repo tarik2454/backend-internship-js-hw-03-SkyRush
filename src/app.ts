@@ -4,6 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { authRouter } from "./routes/api/auth-router";
 import { userRouter } from "./routes/api/user-router";
+import { ExpressError } from "./types";
 
 dotenv.config();
 
@@ -26,24 +27,25 @@ const corsOptions = {
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   exposedHeaders: ["Authorization"],
 };
-
 app.use(cors(corsOptions));
-
 app.options("*", cors(corsOptions));
 
 app.use(express.json());
 app.use(express.static("public"));
 
-app.use("/api/users", authRouter);
+app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 
-app.use((req: Request, res: Response) => {
+app.use((_req: Request, res: Response) => {
   res.status(404).json({ message: "Not found" });
 });
 
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-  const { status = 500, message } = err;
-  res.status(status).json({ message });
-});
+app.use(
+  (err: ExpressError, _req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+    res.status(status).json({ message });
+  }
+);
 
 export default app;

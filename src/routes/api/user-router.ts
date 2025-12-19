@@ -6,9 +6,9 @@ import { authenticate } from "../../middlewares/index";
 
 const userRouter = express.Router();
 
-userRouter.get("/current", authenticate, userController.getCurrent);
+userRouter.get("/", authenticate, userController.getAllUsers);
 
-userRouter.get("/users", authenticate, userController.getAllUsers);
+userRouter.get("/current", authenticate, userController.getCurrent);
 
 userRouter.patch(
   "/update",
@@ -18,4 +18,3 @@ userRouter.patch(
 );
 
 export { userRouter };
-

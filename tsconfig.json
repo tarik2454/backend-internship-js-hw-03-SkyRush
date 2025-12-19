@@ -4,7 +4,7 @@
     "module": "commonjs",
     "lib": ["ES2020"],
     "outDir": "./dist",
-    "rootDir": "./",
+    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -16,10 +16,18 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": true,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true
   },
-  "include": ["**/*.ts"],
+  "ts-node": {
+    "compilerOptions": {
+      "module": "commonjs"
+    },
+    "transpileOnly": false,
+    "files": true
+  },
+  "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

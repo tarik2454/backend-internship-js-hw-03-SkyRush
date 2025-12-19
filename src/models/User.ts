@@ -1,6 +1,10 @@
-import mongoose, { Schema, Model } from 'mongoose';
-import { handleSaveError, preUpdate } from './hooks';
-import { IUser } from '../types';
+import mongoose, { Schema, Model } from "mongoose";
+import {
+  handleSaveError,
+  preUpdate,
+  handleFindOneAndUpdateError,
+} from "./hooks";
+import { IUser } from "../types";
 
 const emailRegexp = /^\w+([\\.-]?\w+)*@\w+([\\.-]?\w+)*(\.\w{2,3})+$/;
 
@@ -8,18 +12,18 @@ const userSchema = new Schema<IUser>(
   {
     username: {
       type: String,
-      required: [true, 'Username is required'],
+      required: [true, "Username is required"],
     },
     email: {
       type: String,
       match: emailRegexp,
-      required: [true, 'Email is required'],
+      required: [true, "Email is required"],
       unique: true,
     },
     password: {
       type: String,
       minlength: 6,
-      required: [true, 'Set password for user'],
+      required: [true, "Set password for user"],
     },
     token: { type: String },
     balance: {
@@ -42,11 +46,10 @@ const userSchema = new Schema<IUser>(
   { versionKey: false, timestamps: true }
 );
 
-userSchema.post('save', handleSaveError);
-userSchema.pre('findOneAndUpdate', preUpdate);
-userSchema.post('findOneAndUpdate', handleSaveError);
+userSchema.post("save", handleSaveError);
+userSchema.pre("findOneAndUpdate", preUpdate);
+userSchema.post("findOneAndUpdate", handleFindOneAndUpdateError);
 
-const User: Model<IUser> = mongoose.model<IUser>('User', userSchema);
+const User: Model<IUser> = mongoose.model<IUser>("User", userSchema);
 
 export { User };
-

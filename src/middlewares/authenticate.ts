@@ -8,7 +8,7 @@ const { JWT_SECRET } = process.env;
 
 const authenticate = async (
   req: RequestWithUser,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): Promise<void> => {
   const { authorization = '' } = req.headers;
@@ -26,8 +26,9 @@ const authenticate = async (
 
     req.user = user;
     next();
-  } catch (error: any) {
-    next(HttpError(401, error.message));
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unauthorized';
+    next(HttpError(401, errorMessage));
   }
 };
 

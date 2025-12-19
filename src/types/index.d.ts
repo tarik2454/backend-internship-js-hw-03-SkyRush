@@ -16,3 +16,12 @@ export interface RequestWithUser extends Request {
   user?: IUser;
 }
 
+export interface HttpErrorWithStatus extends Error {
+  status: number;
+}
+
+export interface ExpressError extends Error {
+  status?: number;
+  statusCode?: number;
+}
+
