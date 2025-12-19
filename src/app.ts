@@ -1,12 +1,9 @@
 import express, { Request, Response, NextFunction } from "express";
 import logger from "morgan";
 import cors from "cors";
-import dotenv from "dotenv";
 import { authRouter } from "./routes/api/auth-router";
 import { userRouter } from "./routes/api/user-router";
 import { ExpressError } from "./types";
-
-dotenv.config();
 
 const app = express();
 
