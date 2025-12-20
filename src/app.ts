@@ -1,4 +1,5 @@
 import express, { Request, Response, NextFunction } from "express";
+import path from "path";
 import logger from "morgan";
 import cors from "cors";
 import { authRouter } from "./modules/auth/auth.router";
@@ -18,6 +19,7 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(express.static(path.join(__dirname, "../public")));
 
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);

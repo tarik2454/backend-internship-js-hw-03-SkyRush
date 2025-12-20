@@ -1,0 +1,152 @@
+:root {
+  --primary: #6366f1;
+  --secondary: #4f46e5;
+  --bg-dark: #0f172a;
+  --bg-card: #1e293b;
+  --text-light: #f8fafc;
+  --text-dim: #94a3b8;
+  --accent-success: #22c55e;
+  --accent-error: #ef4444;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-dark);
+  color: var(--text-light);
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--bg-card);
+}
+
+h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(to right, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+button {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: opacity 0.2s;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+button.secondary {
+  background-color: transparent;
+  border: 1px solid var(--bg-card);
+}
+
+input {
+  background-color: var(--bg-card);
+  border: 1px solid #334155;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.card {
+  background-color: var(--bg-card);
+  padding: 1.5rem;
+  border-radius: 1rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid #334155;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.auth-form {
+  max-width: 400px;
+  margin: 4rem auto;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.case-item {
+  text-align: center;
+  transition: transform 0.2s;
+}
+
+.case-item:hover {
+  transform: translateY(-4px);
+}
+
+.rarity-Common {
+  color: #9e9e9e;
+}
+.rarity-Uncommon {
+  color: #4caf50;
+}
+.rarity-Rare {
+  color: #2196f3;
+}
+.rarity-Epic {
+  color: #9c27b0;
+}
+.rarity-Legendary {
+  color: #f44336;
+}
+.rarity-Gold {
+  color: #ffd700;
+}
+
+.case-img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+  background: #000;
+}
+
+#toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  padding: 1rem 2rem;
+  background: var(--bg-card);
+  border: 1px solid var(--primary);
+  border-radius: 0.5rem;
+  transform: translateY(150%);
+  transition: transform 0.3s;
+}
+
+#toast.show {
+  transform: translateY(0);
+}

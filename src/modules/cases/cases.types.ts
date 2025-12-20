@@ -41,11 +41,28 @@ export interface CaseItem {
 }
 
 /**
- * Расширенная информация о предмете для детального просмотра кейса
- * Расширяет CaseItem, добавляя информацию о шансе выпадения
+ * Информация о выигранном предмете (POST /api/cases/:id/open)
+ * Согласно ТЗ: { id, name, rarity, value, image }
  */
-export interface CaseDetailsItem extends CaseItem {
+export interface WonItem {
+  id: string;
+  name: string;
+  rarity: string;
+  value: number;
+  image: string; // В ТЗ указано "image", не "imageUrl"
+}
+
+/**
+ * Информация о предмете для детального просмотра кейса (GET /api/cases/:id)
+ * Согласно ТЗ: { id, name, rarity, chance, value }
+ * НЕ включает imageUrl (в отличие от CaseItem)
+ */
+export interface CaseDetailsItem {
+  id: string;
+  name: string;
+  rarity: string;
   chance: number; // Шанс выпадения этого предмета из кейса (в процентах)
+  value: number;
 }
 
 /**
@@ -62,11 +79,23 @@ export interface ICase extends Document {
 }
 
 /**
+ * DTO для кейса в списке (GET /api/cases)
+ * Согласно ТЗ: { id, name, price, image, items: [] }
+ */
+export interface CaseListItem {
+  id: string;
+  name: string;
+  price: number;
+  image: string; // В ТЗ указано "image", не "imageUrl"
+  items: []; // Пустой массив согласно ТЗ
+}
+
+/**
  * Ответ API для получения списка всех кейсов
  * GET /api/cases
  */
 export interface CasesResponse {
-  cases: ICase[]; // Массив всех доступных кейсов
+  cases: CaseListItem[];
 }
 
 /**
@@ -90,7 +119,7 @@ export interface CaseDetailsResponse {
  */
 export interface OpenCaseResponse {
   openingId: string; // ID записи об открытии (можно использовать для проверки или истории)
-  item: CaseItem; // Информация о выпавшем предмете
+  item: WonItem; // Информация о выпавшем предмете (согласно ТЗ: { id, name, rarity, value, image })
   // Данные для Provably Fair проверки:
   serverSeed: string; // Server seed, использованный для генерации результата
   clientSeed: string; // Client seed, использованный для генерации результата

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SkyRush Testing UI</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <header class="container">
+      <h1>SkyRush Test UI</h1>
+      <button id="logout-btn" class="secondary" style="display: none">
+        Logout
+      </button>
+    </header>
+
+    <div id="auth-section" class="container auth-form hidden">
+      <div class="card">
+        <h2 id="auth-title" style="margin-bottom: 1.5rem">Login</h2>
+        <form>
+          <div id="reg-username" class="hidden">
+            <input type="text" id="auth-username" placeholder="Username" />
+          </div>
+          <input type="email" id="auth-email" placeholder="Email" />
+          <input type="password" id="auth-password" placeholder="Password" />
+          <button id="auth-submit" style="width: 100%; margin-top: 1rem">
+            Submit
+          </button>
+        </form>
+        <div style="text-align: center; margin-top: 1rem">
+          <button
+            id="toggle-auth"
+            class="secondary"
+            style="font-size: 0.875rem"
+          >
+            Need an account? Register
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="main-section" class="container hidden">
+      <div
+        class="card"
+        id="user-info"
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        "
+      >
+        <!-- Populated by JS -->
+      </div>
+
+      <h2 style="margin-bottom: 1.5rem">Available Cases</h2>
+      <div class="grid" id="cases-grid">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script src="js/app.js"></script>
+  </body>
+</html>

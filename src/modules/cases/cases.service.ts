@@ -10,6 +10,8 @@ import {
   OpenCaseResponse,
   CaseDetailsResponse,
   CasesResponse,
+  CaseListItem,
+  WonItem,
 } from "./cases.types";
 import { generateRoll } from "./cases.utils";
 import { IUser } from "../users/users.types";
@@ -23,11 +25,19 @@ import { HydratedDocument } from "mongoose";
 class CasesService {
   /**
    * Получает список всех кейсов из базы данных
+   * Согласно ТЗ: { cases: [{ id, name, price, image, items: [] }] }
    * @returns Объект с массивом всех кейсов
    */
   async getAllCases(): Promise<CasesResponse> {
-    const cases = await Case.find();
-    return { cases };
+    const cases = await Case.find({ isActive: true });
+    const caseList: CaseListItem[] = cases.map((c) => ({
+      id: c._id.toString(),
+      name: c.name,
+      price: c.price,
+      image: c.imageUrl, // Преобразуем imageUrl в image согласно ТЗ
+      items: [], // Пустой массив согласно ТЗ
+    }));
+    return { cases: caseList };
   }
 
   /**
@@ -56,14 +66,14 @@ class CasesService {
     });
 
     // Преобразуем данные из формата базы данных в формат API-ответа
-    // Каждый предмет включает: ID, название, редкость, URL изображения, стоимость и шанс выпадения
+    // Согласно ТЗ: items: [{ id, name, rarity, chance, value }]
+    // НЕ включаем imageUrl в ответ
     const items: CaseDetailsItem[] = caseItems.map((ci) => {
       const item = (ci as unknown as PopulatedCaseItem).itemId;
       return {
         id: item._id.toString(),
         name: item.name,
         rarity: item.rarityId.name, // Название редкости (например, "Common", "Rare", "Epic")
-        imageUrl: item.imageUrl,
         value: item.value, // Стоимость предмета
         chance: ci.chance, // Шанс выпадения этого предмета из кейса (в процентах)
       };
@@ -219,15 +229,18 @@ class CasesService {
     });
 
     // Возвращаем результат открытия с данными для проверки честности
+    // Согласно ТЗ: item: { id, name, rarity, value, image }
+    const wonItem: WonItem = {
+      id: winningItem._id.toString(),
+      name: winningItem.name,
+      rarity: winningItem.rarityId.name,
+      value: winningItem.value,
+      image: winningItem.imageUrl, // Преобразуем imageUrl в image согласно ТЗ
+    };
+
     return {
       openingId: opening._id as string, // ID записи об открытии (можно использовать для проверки)
-      item: {
-        id: winningItem._id.toString(),
-        name: winningItem.name,
-        rarity: winningItem.rarityId.name,
-        imageUrl: winningItem.imageUrl,
-        value: winningItem.value,
-      },
+      item: wonItem,
       // Данные для Provably Fair проверки:
       serverSeed, // Server seed (текущий, до ротации)
       clientSeed, // Client seed
