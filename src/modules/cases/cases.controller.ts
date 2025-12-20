@@ -8,7 +8,7 @@ import { HydratedDocument } from "mongoose";
 import { IUser } from "../users/users.types";
 import casesService from "./cases.service";
 import { ctrlWrapper } from "../../decorators/index";
-import { RequestWithUser } from "../../types";
+import { AuthenticatedRequest } from "../../types";
 import { OpenCaseDTO } from "./cases.schema";
 
 /**
@@ -65,7 +65,7 @@ const getCaseById = async (
  * @param res - Express Response объект для отправки ответа
  */
 const openCase = async (
-  req: RequestWithUser<{ id: string }, {}, OpenCaseDTO>,
+  req: AuthenticatedRequest<{ id: string }, Record<string, never>, OpenCaseDTO>,
   res: Response<OpenCaseResponse>
 ): Promise<void> => {
   // Извлекаем ID кейса из параметров URL
@@ -76,7 +76,7 @@ const openCase = async (
   // Получаем объект пользователя из middleware authenticate
   // Используем ! так как мы уверены, что user существует (middleware authenticate гарантирует это)
   // Приводим к типу HydratedDocument, чтобы можно было сохранять изменения
-  const user = req.user! as HydratedDocument<IUser>;
+  const user = req.user as HydratedDocument<IUser>;
 
   // Вызываем метод сервиса для открытия кейса
   // Сервис вернет информацию о выпавшем предмете и данные для проверки честности

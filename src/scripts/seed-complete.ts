@@ -1,9 +1,11 @@
 import "dotenv/config";
-import mongoose from "mongoose";
+import mongoose, { HydratedDocument } from "mongoose";
 import { Rarity } from "../modules/cases/rarities/rarities.model";
 import { Item } from "../modules/cases/items/items.model";
 import { Case } from "../modules/cases/cases.model";
 import { CaseItem } from "../modules/cases/case-items/case-items.model";
+import { IItem } from "../modules/cases/items/items.types";
+import { IRarity } from "../modules/cases/rarities/rarities.types";
 
 const RARITIES = [
   { name: "Common", chance: 55, color: "#9E9E9E", baseChance: 55 },
@@ -66,7 +68,7 @@ const seed = async () => {
 
     // 2. Seed Rarities
     console.log("Seeding Rarities...");
-    const rarityMap: Record<string, any> = {};
+    const rarityMap: Record<string, HydratedDocument<IRarity>> = {};
     for (const r of RARITIES) {
       const doc = await Rarity.create({
         name: r.name,
@@ -78,7 +80,7 @@ const seed = async () => {
 
     // 3. Seed Items
     console.log("Seeding Items...");
-    const itemsList: any[] = [];
+    const itemsList: HydratedDocument<IItem>[] = [];
     for (const i of ITEMS_DATA) {
       const rarity = rarityMap[i.rarityName];
       if (!rarity) {

@@ -4,14 +4,14 @@ import { Request, Response } from "express";
 import { User } from "../users/users.model";
 import { HttpError } from "../../helpers/index";
 import { ctrlWrapper } from "../../decorators/index";
-import { RequestWithUser } from "../../types";
+import { AuthenticatedRequest } from "../../types";
 import { createUser } from "../users/users.controller";
 import { UserSignupDTO, UserSigninDTO } from "../users/users.schema";
 
 const { JWT_SECRET } = process.env;
 
 const signup = async (
-  req: Request<{}, {}, UserSignupDTO>,
+  req: Request<Record<string, never>, Record<string, never>, UserSignupDTO>,
   res: Response
 ): Promise<void> => {
   const { email, password, username } = req.body;
@@ -29,7 +29,7 @@ const signup = async (
 };
 
 const signin = async (
-  req: Request<{}, {}, UserSigninDTO>,
+  req: Request<Record<string, never>, Record<string, never>, UserSigninDTO>,
   res: Response
 ): Promise<void> => {
   const { email, password } = req.body;
@@ -56,8 +56,11 @@ const signin = async (
   });
 };
 
-const signout = async (req: RequestWithUser, res: Response): Promise<void> => {
-  const { _id } = req.user!;
+const signout = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  const { _id } = req.user;
   await User.findByIdAndUpdate(_id, { token: "" });
   res.json({ message: "Logout success" });
 };

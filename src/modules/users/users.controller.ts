@@ -4,7 +4,7 @@ import { User } from "./users.model";
 import { IUser } from "./users.types";
 import { HttpError } from "../../helpers/index";
 import { ctrlWrapper } from "../../decorators/index";
-import { RequestWithUser } from "../../types";
+import { AuthenticatedRequest } from "../../types";
 import { UserSignupDTO, UserUpdateDTO } from "./users.schema";
 
 export const createUser = async (userData: UserSignupDTO): Promise<IUser> => {
@@ -27,11 +27,11 @@ export const createUser = async (userData: UserSignupDTO): Promise<IUser> => {
 };
 
 const getCurrent = async (
-  req: RequestWithUser,
+  req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
   const { username, email, balance, totalWagered, gamesPlayed, totalWon } =
-    req.user!;
+    req.user;
 
   res.json({
     username,
@@ -44,7 +44,11 @@ const getCurrent = async (
 };
 
 const updateUser = async (
-  req: RequestWithUser<{}, {}, UserUpdateDTO>,
+  req: AuthenticatedRequest<
+    Record<string, never>,
+    Record<string, never>,
+    UserUpdateDTO
+  >,
   res: Response
 ): Promise<void> => {
   const { username, balance, totalWagered, gamesPlayed, totalWon } = req.body;
@@ -56,7 +60,7 @@ const updateUser = async (
   if (gamesPlayed !== undefined) updateData.gamesPlayed = gamesPlayed;
   if (totalWon !== undefined) updateData.totalWon = totalWon;
 
-  const updated = await User.findByIdAndUpdate(req.user!._id, updateData, {
+  const updated = await User.findByIdAndUpdate(req.user._id, updateData, {
     new: true,
   }).select("username email balance totalWagered gamesPlayed totalWon");
 
