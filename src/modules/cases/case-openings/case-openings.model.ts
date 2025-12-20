@@ -41,13 +41,13 @@ const caseOpeningSchema = new Schema<ICaseOpening>(
     // Номер игры пользователя (nonce), который использовался для генерации
     // Уникален для каждой игры конкретного пользователя
     nonce: { type: Number, required: true },
-
-    // Дата и время открытия кейса
-    createdAt: { type: Date, default: Date.now },
   },
   {
     versionKey: false, // Отключаем поле __v, так как записи истории не изменяются
-    timestamps: false, // Используем ручное управление createdAt
+    timestamps: {
+      createdAt: true, // Автоматически добавляем createdAt
+      updatedAt: false, // Не добавляем updatedAt, так как записи истории не изменяются
+    },
   }
 );
 

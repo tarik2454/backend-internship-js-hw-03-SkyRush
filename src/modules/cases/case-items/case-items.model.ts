@@ -14,20 +14,23 @@ import { ICaseItem } from "./case-items.types";
  * из конкретного кейса. Это важно, так как один и тот же предмет может иметь
  * разную вероятность выпадения в разных кейсах.
  */
-const caseItemSchema = new Schema<ICaseItem>({
-  // ID кейса, в котором может выпасть предмет
-  // ref: "Case" указывает, что это ссылка на коллекцию "cases"
-  caseId: { type: Schema.Types.ObjectId, ref: "Case", required: true },
+const caseItemSchema = new Schema<ICaseItem>(
+  {
+    // ID кейса, в котором может выпасть предмет
+    // ref: "Case" указывает, что это ссылка на коллекцию "cases"
+    caseId: { type: Schema.Types.ObjectId, ref: "Case", required: true },
 
-  // ID предмета, который может выпасть из кейса
-  // ref: "Item" указывает, что это ссылка на коллекцию "items"
-  itemId: { type: Schema.Types.ObjectId, ref: "Item", required: true },
+    // ID предмета, который может выпасть из кейса
+    // ref: "Item" указывает, что это ссылка на коллекцию "items"
+    itemId: { type: Schema.Types.ObjectId, ref: "Item", required: true },
 
-  // Шанс выпадения этого предмета из кейса (в процентах)
-  // Например, chance: 50 означает 50% вероятность выпадения
-  // Сумма всех chance для одного кейса должна равняться 100%
-  chance: { type: Number, required: true },
-});
+    // Шанс выпадения этого предмета из кейса (в процентах)
+    // Например, chance: 50 означает 50% вероятность выпадения
+    // Сумма всех chance для одного кейса должна равняться 100%
+    chance: { type: Number, required: true },
+  },
+  { versionKey: false }
+);
 
 /**
  * Создаем составной уникальный индекс (caseId, itemId) - эквивалент PRIMARY KEY в SQL
