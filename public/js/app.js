@@ -169,10 +169,10 @@ function renderCases(cases) {
     .map(
       (c) => `
     <div class="card case-item">
-      <div class="case-img" style="background-image: url('${c.imageUrl}'); background-size: cover; background-position: center;"></div>
-      <h3 style="margin-bottom: 0.5rem;">${c.name}</h3>
-      <p style="color: var(--accent-success); font-weight: 600; margin-bottom: 1rem;">$${c.price}</p>
-      <button onclick="openCase('${c._id}')">Open Case</button>
+      <div class="case-img" style="background-image: url('${c.image || ''}'); background-size: cover; background-position: center;"></div>
+      <h3 style="margin-bottom: 0.5rem;">${c.name || 'Unknown'}</h3>
+      <p style="color: var(--accent-success); font-weight: 600; margin-bottom: 1rem;">$${c.price || 0}</p>
+      <button onclick="openCase('${c.id || ''}')">Open Case</button>
     </div>
   `
     )
@@ -188,9 +188,9 @@ function showWinModal(item) {
   modal.innerHTML = `
     <div class="card" style="text-align: center; max-width: 400px; width: 90%;">
       <h2 style="margin-bottom: 1rem;">You Won!</h2>
-      <div style="width: 150px; height: 150px; background: #000; margin: 0 auto 1rem; border-radius: 0.5rem; background-image: url('${item.imageUrl}'); background-size: cover;"></div>
-      <h3 class="rarity-${item.rarity}" style="font-size: 1.25rem;">${item.name}</h3>
-      <p style="margin: 0.5rem 0 1.5rem;">Value: $${item.value}</p>
+      <div style="width: 150px; height: 150px; background: #000; margin: 0 auto 1rem; border-radius: 0.5rem; background-image: url('${item.image || ''}'); background-size: cover;"></div>
+      <h3 class="rarity-${item.rarity || ''}" style="font-size: 1.25rem;">${item.name || 'Unknown Item'}</h3>
+      <p style="margin: 0.5rem 0 1.5rem;">Value: $${item.value || 0}</p>
       <button onclick="this.parentElement.parentElement.remove()">Collect</button>
     </div>
   `;

@@ -21,13 +21,13 @@ const seedRarities = async () => {
       if (existing) {
         await Rarity.updateOne(
           { _id: existing._id },
-          { baseChance: data.chance, color: data.color }
+          { chance: data.chance, color: data.color }
         );
         console.log(`Updated rarity: ${data.name}`);
       } else {
         await Rarity.create({
           name: data.name,
-          baseChance: data.chance,
+          chance: data.chance,
           color: data.color,
         });
         console.log(`Created rarity: ${data.name}`);

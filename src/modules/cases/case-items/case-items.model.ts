@@ -30,11 +30,11 @@ const caseItemSchema = new Schema<ICaseItem>({
 });
 
 /**
- * Создаем индекс по полю caseId для оптимизации запросов
- * Когда мы ищем все предметы для конкретного кейса (find({ caseId: ... })),
- * индекс ускорит выполнение запроса
+ * Создаем составной уникальный индекс (caseId, itemId) - эквивалент PRIMARY KEY в SQL
+ * Это гарантирует, что один и тот же предмет не может быть связан с кейсом дважды
+ * Также создает индекс для оптимизации запросов по caseId
  */
-caseItemSchema.index({ caseId: 1 });
+caseItemSchema.index({ caseId: 1, itemId: 1 }, { unique: true });
 
 /**
  * Модель CaseItem для работы с коллекцией "caseitems" в MongoDB

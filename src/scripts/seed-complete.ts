@@ -8,12 +8,12 @@ import { IItem } from "../modules/cases/items/items.types";
 import { IRarity } from "../modules/cases/rarities/rarities.types";
 
 const RARITIES = [
-  { name: "Common", chance: 55, color: "#9E9E9E", baseChance: 55 },
-  { name: "Uncommon", chance: 25, color: "#4CAF50", baseChance: 25 },
-  { name: "Rare", chance: 12, color: "#2196F3", baseChance: 12 },
-  { name: "Epic", chance: 5, color: "#9C27B0", baseChance: 5 },
-  { name: "Legendary", chance: 2.5, color: "#F44336", baseChance: 2.5 },
-  { name: "Gold", chance: 0.5, color: "#FFD700", baseChance: 0.5 },
+  { name: "Common", chance: 55, color: "#9E9E9E" },
+  { name: "Uncommon", chance: 25, color: "#4CAF50" },
+  { name: "Rare", chance: 12, color: "#2196F3" },
+  { name: "Epic", chance: 5, color: "#9C27B0" },
+  { name: "Legendary", chance: 2.5, color: "#F44336" },
+  { name: "Gold", chance: 0.5, color: "#FFD700" },
 ];
 
 const ITEMS_DATA = [
@@ -73,7 +73,7 @@ const seed = async () => {
       const doc = await Rarity.create({
         name: r.name,
         color: r.color,
-        baseChance: r.baseChance,
+        chance: r.chance,
       });
       rarityMap[r.name] = doc;
     }
