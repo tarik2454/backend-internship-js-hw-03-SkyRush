@@ -4,7 +4,6 @@ import { Rarity } from "../modules/cases/rarities/rarities.model";
 import { Item } from "../modules/cases/items/items.model";
 import { Case } from "../modules/cases/cases.model";
 import { CaseItem } from "../modules/cases/case-items/case-items.model";
-import { IItem } from "../modules/cases/items/items.types";
 import { IRarity } from "../modules/cases/rarities/rarities.types";
 
 const RARITIES = [
@@ -16,40 +15,153 @@ const RARITIES = [
   { name: "Gold", chance: 0.5, color: "#FFD700" },
 ];
 
-const ITEMS_DATA = [
-  { name: "P250 | Sand Dune", rarityName: "Common", value: 0.5 },
-  { name: "MAG-7 | Storm", rarityName: "Common", value: 0.4 },
-  { name: "SG 553 | Army Sheen", rarityName: "Common", value: 0.6 },
-
-  { name: "Glock-18 | Wraiths", rarityName: "Uncommon", value: 2.5 },
-  { name: "USP-S | Lead Conduit", rarityName: "Uncommon", value: 3.0 },
-
-  { name: "M4A4 | Evil Daimyo", rarityName: "Rare", value: 8.0 },
-  { name: "AK-47 | Elite Build", rarityName: "Rare", value: 10.0 },
-
-  { name: "AWP | Atheris", rarityName: "Epic", value: 25.0 },
-  { name: "Desert Eagle | Mecha Industries", rarityName: "Epic", value: 30.0 },
-
-  { name: "AK-47 | Asiimov", rarityName: "Legendary", value: 150.0 },
-  { name: "M4A1-S | Hyper Beast", rarityName: "Legendary", value: 120.0 },
-
-  { name: "Karambit | Fade", rarityName: "Gold", value: 1200.0 },
-];
-
+// Данные из фронтенда
 const CASES_DATA = [
   {
-    name: "Standard Case",
-    slug: "standard-case",
-    price: 5,
-    imageUrl: "https://example.com/case-standard.png",
+    name: "Animal Case",
+    slug: "animal-case",
+    price: 50,
+    imageUrl: "https://example.com/case-animal.png",
+    contents: [
+      { emoji: "🐭", name: "Mouse" },
+      { emoji: "🐰", name: "Rabbit" },
+      { emoji: "🐸", name: "Frog" },
+      { emoji: "🐔", name: "Chicken" },
+      { emoji: "🐷", name: "Pig" },
+      { emoji: "🐼", name: "Panda" },
+      { emoji: "🦊", name: "Fox" },
+      { emoji: "🦝", name: "Raccoon" },
+      { emoji: "🦁", name: "Lion" },
+      { emoji: "🐯", name: "Tiger" },
+      { emoji: "🦄", name: "Unicorn" },
+      { emoji: "🐉", name: "Dragon" },
+      { emoji: "🦖", name: "T-Rex" },
+      { emoji: "👑", name: "Crown" },
+    ],
   },
   {
-    name: "Premium Case",
-    slug: "premium-case",
-    price: 50,
-    imageUrl: "https://example.com/case-premium.png",
+    name: "Space Case",
+    slug: "space-case",
+    price: 75,
+    imageUrl: "https://example.com/case-space.png",
+    contents: [
+      { emoji: "⭐", name: "Star" },
+      { emoji: "🌙", name: "Moon" },
+      { emoji: "☄️", name: "Comet" },
+      { emoji: "🛸", name: "UFO" },
+      { emoji: "🌍", name: "Earth" },
+      { emoji: "🪐", name: "Saturn" },
+      { emoji: "🌌", name: "Galaxy" },
+      { emoji: "🚀", name: "Rocket" },
+      { emoji: "👽", name: "Alien" },
+      { emoji: "🌟", name: "Glowing Star" },
+      { emoji: "💫", name: "Dizzy" },
+      { emoji: "🌠", name: "Shooting Star" },
+      { emoji: "🔭", name: "Telescope" },
+      { emoji: "🌞", name: "Sun" },
+    ],
+  },
+  {
+    name: "Food Case",
+    slug: "food-case",
+    price: 40,
+    imageUrl: "https://example.com/case-food.png",
+    contents: [
+      { emoji: "🍎", name: "Apple" },
+      { emoji: "🍌", name: "Banana" },
+      { emoji: "🍞", name: "Bread" },
+      { emoji: "🥕", name: "Carrot" },
+      { emoji: "🥒", name: "Cucumber" },
+      { emoji: "🍕", name: "Pizza" },
+      { emoji: "🍔", name: "Burger" },
+      { emoji: "🌮", name: "Taco" },
+      { emoji: "🍰", name: "Cake" },
+      { emoji: "🍣", name: "Sushi" },
+      { emoji: "🦞", name: "Lobster" },
+      { emoji: "🍾", name: "Champagne" },
+      { emoji: "🎂", name: "Birthday Cake" },
+      { emoji: "💎", name: "Diamond" },
+    ],
+  },
+  {
+    name: "Sports Case",
+    slug: "sports-case",
+    price: 60,
+    imageUrl: "https://example.com/case-sports.png",
+    contents: [
+      { emoji: "⚽", name: "Soccer Ball" },
+      { emoji: "🏀", name: "Basketball" },
+      { emoji: "🏈", name: "Football" },
+      { emoji: "⚾", name: "Baseball" },
+      { emoji: "🎾", name: "Tennis" },
+      { emoji: "🏐", name: "Volleyball" },
+      { emoji: "🏓", name: "Ping Pong" },
+      { emoji: "🥊", name: "Boxing" },
+      { emoji: "🥇", name: "Gold Medal" },
+      { emoji: "🏆", name: "Trophy" },
+      { emoji: "🎖️", name: "Military Medal" },
+      { emoji: "👑", name: "Crown" },
+      { emoji: "🏅", name: "Medal" },
+      { emoji: "⚡", name: "Lightning" },
+    ],
   },
 ];
+
+// Функция для расчета значения предмета на основе редкости и цены кейса
+const calculateItemValue = (casePrice: number, rarityIndex: number): number => {
+  let multiplier = 0;
+
+  // Распределение редкостей по индексам (из фронтенда):
+  // Common (0-4): multiplier = -0.4
+  // Uncommon (5-7): multiplier = 0
+  // Rare (8-9): multiplier = 0.2
+  // Epic (10-11): multiplier = 1.0
+  // Legendary (12): multiplier = 2.0
+  // Gold (13): multiplier = 5.0
+
+  if (rarityIndex < 5) {
+    multiplier = -0.4; // Common
+  } else if (rarityIndex < 8) {
+    multiplier = 0; // Uncommon
+  } else if (rarityIndex < 10) {
+    multiplier = 0.2; // Rare
+  } else if (rarityIndex < 12) {
+    multiplier = 1.0; // Epic
+  } else if (rarityIndex < 13) {
+    multiplier = 2.0; // Legendary
+  } else {
+    multiplier = 5.0; // Gold
+  }
+
+  const value = casePrice * (1 + multiplier);
+  return Math.ceil(value);
+};
+
+// Функция для получения названия редкости по индексу
+const getRarityName = (index: number): string => {
+  if (index < 5) return "Common";
+  if (index < 8) return "Uncommon";
+  if (index < 10) return "Rare";
+  if (index < 12) return "Epic";
+  if (index < 13) return "Legendary";
+  return "Gold";
+};
+
+// Функция для расчета шанса выпадения по индексу
+const getChance = (index: number): number => {
+  // Common (0-4): 55% / 5 = 11% каждый
+  if (index < 5) return 11;
+  // Uncommon (5-7): 25% / 3 ≈ 8.333% каждый
+  if (index < 8) return 25 / 3;
+  // Rare (8-9): 12% / 2 = 6% каждый
+  if (index < 10) return 6;
+  // Epic (10-11): 5% / 2 = 2.5% каждый
+  if (index < 12) return 2.5;
+  // Legendary (12): 2.5%
+  if (index < 13) return 2.5;
+  // Gold (13): 0.5%
+  return 0.5;
+};
 
 const seed = async () => {
   try {
@@ -78,75 +190,60 @@ const seed = async () => {
       rarityMap[r.name] = doc;
     }
 
-    // 3. Seed Items
-    console.log("Seeding Items...");
-    const itemsList: HydratedDocument<IItem>[] = [];
-    for (const i of ITEMS_DATA) {
-      const rarity = rarityMap[i.rarityName];
-      if (!rarity) {
-        console.warn(`Rarity ${i.rarityName} not found for item ${i.name}`);
-        continue;
-      }
-      const doc = await Item.create({
-        name: i.name,
-        rarityId: rarity._id,
-        imageUrl: `https://example.com/item-${i.name
-          .replace(/\s+/g, "-")
-          .toLowerCase()}.png`,
-        value: i.value,
+    // 3. Seed Items and Cases
+    console.log("Seeding Items and Cases...");
+
+    // Для каждого кейса создаем предметы и сам кейс
+    for (const caseData of CASES_DATA) {
+      // Создаем кейс
+      const caseDoc = await Case.create({
+        name: caseData.name,
+        slug: caseData.slug,
+        price: caseData.price,
+        imageUrl: caseData.imageUrl,
+        isActive: true,
       });
-      itemsList.push(doc);
-    }
+      console.log(
+        `[SEED] Created ${caseData.name} - ID: ${caseDoc._id}, Price: $${caseData.price}`
+      );
 
-    // 4. Seed Cases and CaseItems
-    console.log("Seeding Cases...");
+      // Создаем предметы для этого кейса
+      for (let index = 0; index < caseData.contents.length; index++) {
+        const content = caseData.contents[index];
+        const rarityName = getRarityName(index);
+        const rarity = rarityMap[rarityName];
 
-    // -- Case 1: Standard Case (Mainly Commons/Uncommons)
-    const standardCase = await Case.create(CASES_DATA[0]);
-    console.log(`[SEED] Created Standard Case - ID: ${standardCase._id}`);
-    // Distribution for Standard Case:
-    // Common: 50%, Uncommon: 30%, Rare: 15%, Epic: 4%, Legendary: 1%
-    // We'll pick some items randomly or statically. For simplicity, static:
+        if (!rarity) {
+          console.warn(
+            `Rarity ${rarityName} not found for item ${content.name}`
+          );
+          continue;
+        }
 
-    const standardItems = [
-      { itemName: "P250 | Sand Dune", chance: 30 },
-      { itemName: "MAG-7 | Storm", chance: 20 },
-      { itemName: "Glock-18 | Wraiths", chance: 30 },
-      { itemName: "M4A4 | Evil Daimyo", chance: 15 },
-      { itemName: "AWP | Atheris", chance: 5 },
-    ];
+        const value = calculateItemValue(caseData.price, index);
+        const chance = getChance(index);
 
-    for (const link of standardItems) {
-      const item = itemsList.find((i) => i.name === link.itemName);
-      if (item) {
+        // Создаем уникальное имя предмета для этого кейса
+        const itemName = `${caseData.name} - ${content.name} ${content.emoji}`;
+
+        const itemDoc = await Item.create({
+          name: itemName,
+          rarityId: rarity._id,
+          imageUrl: `https://example.com/item-${caseData.slug}-${index}.png`,
+          value: value,
+        });
+
+        // Создаем связь CaseItem для этого кейса
         await CaseItem.create({
-          caseId: standardCase._id,
-          itemId: item._id,
-          chance: link.chance,
+          caseId: caseDoc._id,
+          itemId: itemDoc._id,
+          chance: chance,
         });
       }
-    }
 
-    // -- Case 2: Premium Case (High tier items)
-    const premiumCase = await Case.create(CASES_DATA[1]);
-    console.log(`[SEED] Created Premium Case - ID: ${premiumCase._id}`);
-    const premiumItems = [
-      { itemName: "AK-47 | Elite Build", chance: 40 },
-      { itemName: "Desert Eagle | Mecha Industries", chance: 30 },
-      { itemName: "M4A1-S | Hyper Beast", chance: 20 },
-      { itemName: "AK-47 | Asiimov", chance: 9.5 },
-      { itemName: "Karambit | Fade", chance: 0.5 },
-    ];
-
-    for (const link of premiumItems) {
-      const item = itemsList.find((i) => i.name === link.itemName);
-      if (item) {
-        await CaseItem.create({
-          caseId: premiumCase._id,
-          itemId: item._id,
-          chance: link.chance,
-        });
-      }
+      console.log(
+        `[SEED] Created ${caseData.contents.length} items for ${caseData.name}`
+      );
     }
 
     console.log("Seeding completed successfully!");
