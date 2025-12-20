@@ -1,5 +1,5 @@
 import { Schema, model } from "mongoose";
-import { ICase } from "../interfaces/cases.types";
+import { ICase } from "./cases.types";
 
 /**
  * Mongoose схема для модели Case (Кейс)

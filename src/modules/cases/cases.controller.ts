@@ -3,12 +3,13 @@ import {
   CasesResponse,
   CaseDetailsResponse,
   OpenCaseResponse,
-} from "./interfaces/cases.types";
+} from "./cases.types";
 import { HydratedDocument } from "mongoose";
 import { IUser } from "../users/users.types";
 import casesService from "./cases.service";
 import { ctrlWrapper } from "../../decorators/index";
 import { RequestWithUser } from "../../types";
+import { OpenCaseDTO } from "./cases.schema";
 
 /**
  * Контроллер для обработки HTTP-запросов, связанных с кейсами
@@ -64,7 +65,7 @@ const getCaseById = async (
  * @param res - Express Response объект для отправки ответа
  */
 const openCase = async (
-  req: RequestWithUser,
+  req: RequestWithUser<{ id: string }, {}, OpenCaseDTO>,
   res: Response<OpenCaseResponse>
 ): Promise<void> => {
   // Извлекаем ID кейса из параметров URL

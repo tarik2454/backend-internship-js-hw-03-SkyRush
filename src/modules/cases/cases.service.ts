@@ -1,7 +1,7 @@
 import crypto from "crypto";
-import { Case } from "./models/cases.model";
-import { CaseOpening } from "./models/cases.opening.model";
-import { CaseItem as CaseItemModel } from "./models/case-items.model";
+import { Case } from "./cases.model";
+import { CaseOpening } from "./case-openings/case-openings.model";
+import { CaseItem as CaseItemModel } from "./case-items/case-items.model";
 import "./items/items.model";
 import "./rarities/rarities.model";
 import {
@@ -10,7 +10,7 @@ import {
   OpenCaseResponse,
   CaseDetailsResponse,
   CasesResponse,
-} from "./interfaces/cases.types";
+} from "./cases.types";
 import { generateRoll } from "./cases.utils";
 import { IUser } from "../users/users.types";
 import { HttpError } from "../../helpers/index";

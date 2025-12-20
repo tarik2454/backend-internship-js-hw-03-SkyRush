@@ -1,53 +1,39 @@
-import Joi from "joi";
+import { z } from "zod";
 
-const emailRegexp = /^\w+([\\.-]?\w+)*@\w+([\\.-]?\w+)*(\.\w{2,3})+$/;
-
-export const userSignupSchema = Joi.object({
-  username: Joi.string().min(2).max(20).required().messages({
-    "string.base": `"username" should be a type of 'text'`,
-    "string.empty": `"username" cannot be an empty field`,
-    "string.min": `"username" should have a minimum length of {#limit}`,
-    "string.max": `"username" should have a maximum length of {#limit}`,
-    "any.required": `"username" is a required field`,
-  }),
-  password: Joi.string().min(6).required().messages({
-    "string.base": `"password" should be a type of 'text'`,
-    "string.empty": `"password" cannot be an empty field`,
-    "string.min": `"password" should have a minimum length of {#limit}`,
-    "any.required": `"password" is a required field`,
-  }),
-  email: Joi.string().min(6).pattern(emailRegexp).required().messages({
-    "string.base": `"email" should be a type of 'text'`,
-    "string.empty": `"email" cannot be an empty field`,
-    "string.min": `"email" should have a minimum length of {#limit}`,
-    "any.required": `"email" is a required field`,
-  }),
+export const userSignupSchema = z.object({
+  username: z
+    .string({ message: '"username" is a required field' })
+    .min(2, { message: '"username" should have a minimum length of 2' })
+    .max(20, { message: '"username" should have a maximum length of 20' }),
+  password: z
+    .string({ message: '"password" is a required field' })
+    .min(6, { message: '"password" should have a minimum length of 6' }),
+  email: z
+    .string({ message: '"email" is a required field' })
+    .email({ message: '"email" must be a valid email' }),
 });
 
-export const userSigninSchema = Joi.object({
-  password: Joi.string().min(6).required().messages({
-    "string.base": `"password" should be a type of 'text'`,
-    "string.empty": `"password" cannot be an empty field`,
-    "string.min": `"password" should have a minimum length of {#limit}`,
-    "any.required": `"password" is a required field`,
-  }),
-  email: Joi.string().min(6).pattern(emailRegexp).required().messages({
-    "string.base": `"email" should be a type of 'text'`,
-    "string.empty": `"email" cannot be an empty field`,
-    "string.min": `"email" should have a minimum length of {#limit}`,
-    "any.required": `"email" is a required field`,
-  }),
+export const userSigninSchema = z.object({
+  password: z
+    .string({ message: '"password" is a required field' })
+    .min(6, { message: '"password" should have a minimum length of 6' }),
+  email: z
+    .string({ message: '"email" is a required field' })
+    .email({ message: '"email" must be a valid email' }),
 });
 
-export const userUpdateSchema = Joi.object({
-  username: Joi.string().min(2).max(20).optional().messages({
-    "string.base": `"username" should be a type of 'text'`,
-    "string.empty": `"username" cannot be an empty field`,
-    "string.min": `"username" should have a minimum length of {#limit}`,
-    "string.max": `"username" should have a maximum length of {#limit}`,
-  }),
-  balance: Joi.number().optional(),
-  totalWagered: Joi.number().optional(),
-  gamesPlayed: Joi.number().integer().optional(),
-  totalWon: Joi.number().optional(),
+export const userUpdateSchema = z.object({
+  username: z
+    .string()
+    .min(2, { message: '"username" should have a minimum length of 2' })
+    .max(20, { message: '"username" should have a maximum length of 20' })
+    .optional(),
+  balance: z.number().optional(),
+  totalWagered: z.number().optional(),
+  gamesPlayed: z.number().int().optional(),
+  totalWon: z.number().optional(),
 });
+
+export type UserSignupDTO = z.infer<typeof userSignupSchema>;
+export type UserSigninDTO = z.infer<typeof userSigninSchema>;
+export type UserUpdateDTO = z.infer<typeof userUpdateSchema>;

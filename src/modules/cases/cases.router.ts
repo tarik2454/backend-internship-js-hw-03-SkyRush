@@ -1,6 +1,8 @@
 import express from "express";
 import casesController from "./cases.controller";
 import { authenticate, isValidId } from "../../middlewares/index";
+import { validateBody } from "../../decorators/index";
+import { openCaseSchema } from "./cases.schema";
 
 /**
  * Роутер для маршрутов, связанных с кейсами
@@ -42,6 +44,7 @@ caseRouter.get("/:id", authenticate, isValidId, casesController.getCaseById);
  * Middleware:
  * - authenticate - проверяет авторизацию пользователя (добавляет req.user)
  * - isValidId - проверяет валидность ID кейса
+ * - validateBody - валидирует тело запроса (clientSeed)
  *
  * Параметры:
  * - :id - ID кейса, который нужно открыть
@@ -53,6 +56,12 @@ caseRouter.get("/:id", authenticate, isValidId, casesController.getCaseById);
  *
  * Контроллер: casesController.openCase
  */
-caseRouter.post("/:id/open", authenticate, isValidId, casesController.openCase);
+caseRouter.post(
+  "/:id/open",
+  authenticate,
+  isValidId,
+  validateBody(openCaseSchema),
+  casesController.openCase
+);
 
 export { caseRouter };

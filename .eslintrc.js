@@ -1,12 +1,20 @@
 module.exports = {
+  parser: "@typescript-eslint/parser",
+  plugins: ["@typescript-eslint"],
   env: {
     commonjs: true,
     es2021: true,
     node: true,
   },
-  extends: ['standard', 'prettier'],
+  extends: [
+    "standard",
+    "plugin:@typescript-eslint/recommended",
+    "prettier",
+  ],
   parserOptions: {
     ecmaVersion: 12,
   },
-  rules: {},
-}
+  rules: {
+    "@typescript-eslint/no-explicit-any": "error",
+  },
+};

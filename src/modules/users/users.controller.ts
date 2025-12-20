@@ -5,12 +5,9 @@ import { IUser } from "./users.types";
 import { HttpError } from "../../helpers/index";
 import { ctrlWrapper } from "../../decorators/index";
 import { RequestWithUser } from "../../types";
+import { UserSignupDTO, UserUpdateDTO } from "./users.schema";
 
-export const createUser = async (userData: {
-  username: string;
-  email: string;
-  password: string;
-}): Promise<IUser> => {
+export const createUser = async (userData: UserSignupDTO): Promise<IUser> => {
   const { email, password, ...restData } = userData;
 
   const existingUser = await User.findOne({ email });
@@ -47,17 +44,12 @@ const getCurrent = async (
 };
 
 const updateUser = async (
-  req: RequestWithUser,
+  req: RequestWithUser<{}, {}, UserUpdateDTO>,
   res: Response
 ): Promise<void> => {
   const { username, balance, totalWagered, gamesPlayed, totalWon } = req.body;
 
-  const updateData: Partial<
-    Pick<
-      IUser,
-      "username" | "balance" | "totalWagered" | "gamesPlayed" | "totalWon"
-    >
-  > = {};
+  const updateData: Partial<UserUpdateDTO> = {};
   if (username) updateData.username = username;
   if (balance !== undefined) updateData.balance = balance;
   if (totalWagered !== undefined) updateData.totalWagered = totalWagered;

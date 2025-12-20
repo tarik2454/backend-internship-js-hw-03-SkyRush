@@ -1,5 +1,5 @@
 import { Schema, model } from "mongoose";
-import { ICaseOpening } from "../interfaces/cases.opening.types";
+import { ICaseOpening } from "./case-openings.types";
 
 /**
  * Mongoose схема для модели CaseOpening (История открытий кейсов)

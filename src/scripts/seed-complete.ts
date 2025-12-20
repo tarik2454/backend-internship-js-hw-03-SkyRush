@@ -2,8 +2,8 @@ import "dotenv/config";
 import mongoose from "mongoose";
 import { Rarity } from "../modules/cases/rarities/rarities.model";
 import { Item } from "../modules/cases/items/items.model";
-import { Case } from "../modules/cases/models/cases.model";
-import { CaseItem } from "../modules/cases/models/case-items.model";
+import { Case } from "../modules/cases/cases.model";
+import { CaseItem } from "../modules/cases/case-items/case-items.model";
 
 const RARITIES = [
   { name: "Common", chance: 55, color: "#9E9E9E", baseChance: 55 },

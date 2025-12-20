@@ -1,7 +1,7 @@
 import { Document } from "mongoose";
-import { IItem } from "../items/items.types";
-import { IRarity } from "../rarities/rarities.types";
-import { ICaseItem } from "./case-items.types";
+import { IItem } from "./items/items.types";
+import { IRarity } from "./rarities/rarities.types";
+import { ICaseItem } from "./case-items/case-items.types";
 
 /**
  * Вспомогательный тип для работы с "заполненными" (populated) документами Mongoose

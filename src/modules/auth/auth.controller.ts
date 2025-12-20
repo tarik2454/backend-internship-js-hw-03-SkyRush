@@ -6,10 +6,14 @@ import { HttpError } from "../../helpers/index";
 import { ctrlWrapper } from "../../decorators/index";
 import { RequestWithUser } from "../../types";
 import { createUser } from "../users/users.controller";
+import { UserSignupDTO, UserSigninDTO } from "../users/users.schema";
 
 const { JWT_SECRET } = process.env;
 
-const signup = async (req: Request, res: Response): Promise<void> => {
+const signup = async (
+  req: Request<{}, {}, UserSignupDTO>,
+  res: Response
+): Promise<void> => {
   const { email, password, username } = req.body;
 
   const newUser = await createUser({
@@ -24,7 +28,10 @@ const signup = async (req: Request, res: Response): Promise<void> => {
   });
 };
 
-const signin = async (req: Request, res: Response): Promise<void> => {
+const signin = async (
+  req: Request<{}, {}, UserSigninDTO>,
+  res: Response
+): Promise<void> => {
   const { email, password } = req.body;
 
   const user = await User.findOne({ email });

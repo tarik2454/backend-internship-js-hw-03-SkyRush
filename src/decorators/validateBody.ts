@@ -1,12 +1,18 @@
 import { Request, Response, NextFunction } from "express";
-import { Schema } from "joi";
+import { ZodSchema, ZodError } from "zod";
 import { HttpError } from "../helpers/index";
 
-export const validateBody = (schema: Schema) => {
+export const validateBody = (schema: ZodSchema<unknown>) => {
   const func = (req: Request, _res: Response, next: NextFunction): void => {
-    const { error } = schema.validate(req.body);
-    if (error) {
-      return next(HttpError(400, error.message));
+    const result = schema.safeParse(req.body);
+    
+    if (!result.success) {
+      const error = result.error as ZodError;
+      
+      const errorMessage = error.issues
+        .map((issue) => issue.message)
+        .join(", ");
+      return next(HttpError(400, errorMessage));
     }
     next();
   };
