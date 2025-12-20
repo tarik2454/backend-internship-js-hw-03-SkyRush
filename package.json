@@ -6,12 +6,14 @@
     "node": "24.x"
   },
   "scripts": {
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "build": "tsc",
     "start": "cross-env NODE_ENV=production node ./dist/index.js",
     "dev": "cross-env NODE_ENV=development nodemon --watch \"src/**/*.ts\" --exec \"ts-node\" src/index.ts",
     "lint": "eslint **/*.{ts,js}",
-    "lint:fix": "eslint --fix **/*.{ts,js}"
+    "lint:fix": "eslint --fix **/*.{ts,js}",
+    "seed:rarities": "ts-node src/scripts/seed-rarities.ts",
+    "seed:complete": "ts-node src/scripts/seed-complete.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

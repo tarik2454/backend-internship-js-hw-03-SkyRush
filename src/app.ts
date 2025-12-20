@@ -1,8 +1,9 @@
 import express, { Request, Response, NextFunction } from "express";
 import logger from "morgan";
 import cors from "cors";
-import { authRouter } from "./routes/api/auth-router";
-import { userRouter } from "./routes/api/user-router";
+import { authRouter } from "./modules/auth/auth.router";
+import { userRouter } from "./modules/users/users.router";
+import { caseRouter } from "./modules/cases/cases.router";
 import { ExpressError } from "./types";
 
 const app = express();
@@ -17,10 +18,10 @@ app.use(
   })
 );
 app.use(express.json());
-app.use(express.static("public"));
 
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
+app.use("/api/cases", caseRouter);
 
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ message: "Not found" });

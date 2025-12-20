@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from "express";
 
 type ControllerFunction = (
   req: Request,
@@ -17,4 +17,3 @@ export const ctrlWrapper = (ctrl: ControllerFunction) => {
 
   return func;
 };
-

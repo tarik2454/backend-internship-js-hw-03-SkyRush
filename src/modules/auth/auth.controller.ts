@@ -1,11 +1,11 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { Request, Response } from "express";
-import { User } from "../models/User";
-import { HttpError } from "../helpers/index";
-import { ctrlWrapper } from "../decorators/index";
-import { RequestWithUser } from "../types";
-import { createUser } from "./user-controller";
+import { User } from "../users/users.model";
+import { HttpError } from "../../helpers/index";
+import { ctrlWrapper } from "../../decorators/index";
+import { RequestWithUser } from "../../types";
+import { createUser } from "../users/users.controller";
 
 const { JWT_SECRET } = process.env;
 

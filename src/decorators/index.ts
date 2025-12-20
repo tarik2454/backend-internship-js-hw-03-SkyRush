@@ -1,3 +1,2 @@
-export { ctrlWrapper } from './ctrlWrapper';
-export { validateBody } from './validateBody';
-
+export { ctrlWrapper } from "./ctrlWrapper";
+export { validateBody } from "./validateBody";

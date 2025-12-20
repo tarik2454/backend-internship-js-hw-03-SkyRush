@@ -1,10 +1,7 @@
 import express from "express";
-import authController from "../../controllers/auth-controller";
+import authController from "./auth.controller";
 import { validateBody } from "../../decorators/index";
-import {
-  userSignupSchema,
-  userSigninSchema,
-} from "../../schemas/user-schemas";
+import { userSignupSchema, userSigninSchema } from "../users/users.schema";
 import { authenticate } from "../../middlewares/index";
 
 const authRouter = express.Router();

@@ -1,7 +1,7 @@
 import express from "express";
-import userController from "../../controllers/user-controller";
+import userController from "./users.controller";
 import { validateBody } from "../../decorators/index";
-import { userUpdateSchema } from "../../schemas/user-schemas";
+import { userUpdateSchema } from "./users.schema";
 import { authenticate } from "../../middlewares/index";
 
 const userRouter = express.Router();

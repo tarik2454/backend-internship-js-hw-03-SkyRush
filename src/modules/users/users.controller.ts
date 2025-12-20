@@ -1,9 +1,10 @@
 import bcrypt from "bcryptjs";
 import { Request, Response } from "express";
-import { User } from "../models/User";
-import { HttpError } from "../helpers/index";
-import { ctrlWrapper } from "../decorators/index";
-import { RequestWithUser, IUser } from "../types";
+import { User } from "./users.model";
+import { IUser } from "./users.types";
+import { HttpError } from "../../helpers/index";
+import { ctrlWrapper } from "../../decorators/index";
+import { RequestWithUser } from "../../types";
 
 export const createUser = async (userData: {
   username: string;
@@ -85,4 +86,3 @@ export default {
   getAllUsers: ctrlWrapper(getAllUsers),
   updateUser: ctrlWrapper(updateUser),
 };
-
