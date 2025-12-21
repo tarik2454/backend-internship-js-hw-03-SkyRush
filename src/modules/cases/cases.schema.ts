@@ -5,4 +5,3 @@ export const openCaseSchema = z.object({
 });
 
 export type OpenCaseDTO = z.infer<typeof openCaseSchema>;
-
