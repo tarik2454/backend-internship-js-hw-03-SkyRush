@@ -6,6 +6,7 @@ import { authRouter } from "./modules/auth/auth.router";
 import { userRouter } from "./modules/users/users.router";
 import { caseRouter } from "./modules/cases/cases.router";
 import { ExpressError } from "./types";
+import { minesRouter } from "./modules/mines/mines.router";
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use(express.static(path.join(__dirname, "../public")));
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/cases", caseRouter);
+app.use("/api/mines", minesRouter);
 
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ message: "Not found" });
