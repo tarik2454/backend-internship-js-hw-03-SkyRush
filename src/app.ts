@@ -8,6 +8,7 @@ import { caseRouter } from "./modules/cases/cases.router";
 import { ExpressError } from "./types";
 import { minesRouter } from "./modules/mines/mines.router";
 import { plinkoRouter } from "./modules/plinko/plinko.router";
+import { loginLimiter, registerLimiter } from "./middlewares";
 
 const app = express();
 
@@ -23,6 +24,8 @@ app.use(
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "../public")));
 
+app.use("/api/auth/login", loginLimiter);
+app.use("/api/auth/register", registerLimiter);
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/cases", caseRouter);

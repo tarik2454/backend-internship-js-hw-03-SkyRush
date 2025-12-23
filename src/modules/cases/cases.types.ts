@@ -1,6 +1,7 @@
 import { IItem } from "./models/items/items.types";
 import { IRarity } from "./models/rarities/rarities.types";
 import { ICaseItem } from "./models/case-items/case-items.types";
+export { ICase } from "./models/cases/cases.types";
 
 export interface PopulatedItem extends Omit<IItem, "rarityId"> {
   rarityId: IRarity;
@@ -33,8 +34,6 @@ export interface CaseDetailsItem {
   chance: number;
   value: number;
 }
-
-export { ICase } from "./models/cases/cases.types";
 
 export interface CaseListItem {
   id: string;

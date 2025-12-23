@@ -1,6 +1,10 @@
 import "dotenv/config";
 import mongoose from "mongoose";
 import app from "./app";
+import { validateEnv } from "./config/env";
+
+// Validate environment variables before connecting to DB
+validateEnv();
 
 mongoose
   .connect(process.env.DB_HOST as string, {
