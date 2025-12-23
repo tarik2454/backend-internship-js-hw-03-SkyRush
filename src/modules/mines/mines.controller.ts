@@ -1,21 +1,13 @@
 import { Response } from "express";
 import { ctrlWrapper } from "../../decorators";
 import minesService from "./mines.service";
-import { AuthenticatedRequest } from "../../types";
+import { AuthBodyRequest, AuthenticatedRequest } from "../../types";
 import { StartMineDTO, RevealMineDTO, CashoutMineDTO } from "./mines.schema";
-import { HydratedDocument } from "mongoose";
-import { IUser } from "../users/users.types";
 
-const startMine = async (
-  req: AuthenticatedRequest<
-    Record<string, never>,
-    Record<string, never>,
-    StartMineDTO
-  >,
-  res: Response
-) => {
+const startMine = async (req: AuthBodyRequest<StartMineDTO>, res: Response) => {
   const { amount, minesCount, clientSeed } = req.body;
-  const user = req.user as HydratedDocument<IUser>;
+  const user = req.user;
+
   const result = await minesService.startMine(
     user,
     amount,
@@ -26,42 +18,37 @@ const startMine = async (
 };
 
 const revealMine = async (
-  req: AuthenticatedRequest<
-    Record<string, never>,
-    Record<string, never>,
-    RevealMineDTO
-  >,
+  req: AuthBodyRequest<RevealMineDTO>,
   res: Response
 ) => {
   const { gameId, position } = req.body;
-  const user = req.user as HydratedDocument<IUser>;
+  const user = req.user;
+
   const result = await minesService.revealMine(user, gameId, position);
   res.json(result);
 };
 
 const cashoutMine = async (
-  req: AuthenticatedRequest<
-    Record<string, never>,
-    Record<string, never>,
-    CashoutMineDTO
-  >,
+  req: AuthBodyRequest<CashoutMineDTO>,
   res: Response
 ) => {
   const { gameId } = req.body;
-  const user = req.user as HydratedDocument<IUser>;
+  const user = req.user;
+
   const result = await minesService.cashoutMine(user, gameId);
   res.json(result);
 };
 
 const activateMine = async (req: AuthenticatedRequest, res: Response) => {
-  const user = req.user as HydratedDocument<IUser>;
+  const user = req.user;
   const result = await minesService.getActiveGame(user);
   res.json(result);
 };
 
 const historyMine = async (req: AuthenticatedRequest, res: Response) => {
-  const user = req.user as HydratedDocument<IUser>;
+  const user = req.user;
   const { limit = 10, offset = 0 } = req.query;
+
   const result = await minesService.getHistory(
     user,
     Number(limit),

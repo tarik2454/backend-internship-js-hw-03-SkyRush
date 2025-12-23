@@ -11,4 +11,5 @@ export interface IUser extends Document {
   totalWon: number;
   serverSeed?: string;
   clientSeed?: string;
+  nonce?: number;
 }

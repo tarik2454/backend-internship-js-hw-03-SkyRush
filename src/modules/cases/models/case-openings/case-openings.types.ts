@@ -10,3 +10,4 @@ export interface ICaseOpening extends Document {
   nonce: number;
   createdAt: Date;
 }
+

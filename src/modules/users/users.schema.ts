@@ -2,24 +2,24 @@ import { z } from "zod";
 
 export const userSignupSchema = z.object({
   username: z
-    .string({ message: '"username" is a required field' })
+    .string({ error: '"username" is a required field' })
     .min(2, { message: '"username" should have a minimum length of 2' })
     .max(20, { message: '"username" should have a maximum length of 20' }),
   password: z
-    .string({ message: '"password" is a required field' })
+    .string({ error: '"password" is a required field' })
     .min(6, { message: '"password" should have a minimum length of 6' }),
   email: z
-    .string({ message: '"email" is a required field' })
-    .email({ message: '"email" must be a valid email' }),
+    .string({ error: '"email" is a required field' })
+    .pipe(z.email({ message: '"email" must be a valid email' })),
 });
 
 export const userSigninSchema = z.object({
   password: z
-    .string({ message: '"password" is a required field' })
+    .string({ error: '"password" is a required field' })
     .min(6, { message: '"password" should have a minimum length of 6' }),
   email: z
-    .string({ message: '"email" is a required field' })
-    .email({ message: '"email" must be a valid email' }),
+    .string({ error: '"email" is a required field' })
+    .pipe(z.email({ message: '"email" must be a valid email' })),
 });
 
 export const userUpdateSchema = z.object({

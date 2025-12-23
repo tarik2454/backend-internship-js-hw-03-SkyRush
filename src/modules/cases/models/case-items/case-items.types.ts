@@ -5,3 +5,4 @@ export interface ICaseItem extends Document {
   itemId: Types.ObjectId;
   chance: number;
 }
+

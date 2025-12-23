@@ -3,7 +3,7 @@ import {
   handleSaveError,
   preUpdate,
   handleFindOneAndUpdateError,
-} from "../../helpers/index";
+} from "../../../helpers/index";
 import { IUser } from "./users.types";
 
 const emailRegexp = /^\w+([\\.-]?\w+)*@\w+([\\.-]?\w+)*(\.\w{2,3})+$/;
@@ -42,6 +42,7 @@ const userSchema = new Schema<IUser>(
       type: Number,
       default: 0,
     },
+    nonce: { type: Number, default: 0 },
     serverSeed: { type: String },
     clientSeed: { type: String },
   },

@@ -5,3 +5,4 @@ export interface IRarity extends Document {
   color: string;
   chance: number;
 }
+

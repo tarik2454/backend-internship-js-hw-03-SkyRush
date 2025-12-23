@@ -1,7 +1,6 @@
-import { Document } from "mongoose";
-import { IItem } from "./items/items.types";
-import { IRarity } from "./rarities/rarities.types";
-import { ICaseItem } from "./case-items/case-items.types";
+import { IItem } from "./models/items/items.types";
+import { IRarity } from "./models/rarities/rarities.types";
+import { ICaseItem } from "./models/case-items/case-items.types";
 
 export interface PopulatedItem extends Omit<IItem, "rarityId"> {
   rarityId: IRarity;
@@ -35,14 +34,7 @@ export interface CaseDetailsItem {
   value: number;
 }
 
-export interface ICase extends Document {
-  name: string;
-  slug: string;
-  price: number;
-  imageUrl: string;
-  isActive: boolean;
-  createdAt: Date;
-}
+export { ICase } from "./models/cases/cases.types";
 
 export interface CaseListItem {
   id: string;
@@ -70,4 +62,7 @@ export interface OpenCaseResponse {
   clientSeed: string;
   nonce: number;
   roll: number;
+  newBalance: number;
+  casePrice: number;
+  itemValue: number;
 }

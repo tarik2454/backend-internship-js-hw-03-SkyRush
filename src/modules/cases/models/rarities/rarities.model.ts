@@ -14,3 +14,4 @@ const raritySchema = new Schema<IRarity>(
 );
 
 export const Rarity = model<IRarity>("Rarity", raritySchema);
+

@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { Request, Response } from "express";
-import { User } from "./users.model";
-import { IUser } from "./users.types";
+import { User } from "./models/users.model";
+import { IUser } from "./models/users.types";
 import { HttpError } from "../../helpers/index";
 import { ctrlWrapper } from "../../decorators/index";
 import { AuthenticatedRequest } from "../../types";

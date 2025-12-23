@@ -13,3 +13,4 @@ const caseItemSchema = new Schema<ICaseItem>(
 caseItemSchema.index({ caseId: 1, itemId: 1 }, { unique: true });
 
 export const CaseItem = model<ICaseItem>("CaseItem", caseItemSchema);
+

@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { HydratedDocument } from "mongoose";
-import { MinesGame } from "./mines.model";
-import { IUser } from "../users/users.types";
+import { MinesGame } from "./models/mines.model";
+import { IUser } from "../users/models/users.types";
 import { HttpError } from "../../helpers";
 import {
   generateMinePositions,
@@ -50,8 +50,8 @@ class MinesService {
 
     const nonce = user.gamesPlayed;
     const currentClientSeed = user.clientSeed;
-
     const gameServerSeed = serverSeed;
+
     user.serverSeed = crypto.randomBytes(32).toString("hex");
     await user.save();
 
@@ -131,10 +131,12 @@ class MinesService {
 
       const safeTilesTotal = 25 - game.minesCount;
       const safeTilesLeft = safeTilesTotal - game.revealedPositions.length;
+
       const currentMultiplier = calculateMultiplier(
         game.minesCount,
         game.revealedPositions.length
       );
+
       const currentValue =
         Math.floor(game.betAmount * currentMultiplier * 100) / 100;
 

@@ -1,6 +1,6 @@
 import "dotenv/config";
 import mongoose from "mongoose";
-import { CaseOpening } from "../modules/cases/case-openings/case-openings.model";
+import { CaseOpening } from "../modules/cases/models/case-openings/case-openings.model";
 
 /**
  * Скрипт для удаления поля __v из всех документов в коллекции caseopenings

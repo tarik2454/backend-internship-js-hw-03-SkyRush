@@ -17,3 +17,4 @@ const caseSchema = new Schema<ICase>(
 );
 
 export const Case = model<ICase>("Case", caseSchema);
+

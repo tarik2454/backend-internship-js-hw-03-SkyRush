@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { Response, NextFunction } from "express";
-import { User } from "../modules/users/users.model";
+import { User } from "../modules/users/models/users.model";
 import { HttpError } from "../helpers/index";
 import { RequestWithUser } from "../types";
 

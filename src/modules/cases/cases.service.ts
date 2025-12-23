@@ -1,9 +1,9 @@
 import crypto from "crypto";
-import { Case } from "./cases.model";
-import { CaseOpening } from "./case-openings/case-openings.model";
-import { CaseItem as CaseItemModel } from "./case-items/case-items.model";
-import "./items/items.model";
-import "./rarities/rarities.model";
+import { Case } from "./models/cases/cases.model";
+import { CaseOpening } from "./models/case-openings/case-openings.model";
+import { CaseItem as CaseItemModel } from "./models/case-items/case-items.model";
+import "./models/items/items.model";
+import "./models/rarities/rarities.model";
 import {
   CaseDetailsItem,
   PopulatedCaseItem,
@@ -14,7 +14,7 @@ import {
   WonItem,
 } from "./cases.types";
 import { generateRoll } from "./cases.utils";
-import { IUser } from "../users/users.types";
+import { IUser } from "../users/models/users.types";
 import { HttpError } from "../../helpers/index";
 import { HydratedDocument } from "mongoose";
 
@@ -119,6 +119,8 @@ class CasesService {
     const winningItem = (winningCaseItem as unknown as PopulatedCaseItem)
       .itemId;
 
+    user.balance += winningItem.value;
+    
     user.totalWon += winningItem.value;
 
     await user.save();
@@ -148,6 +150,9 @@ class CasesService {
       clientSeed,
       nonce,
       roll: rollValue,
+      newBalance: user.balance,
+      casePrice: caseToOpen.price,
+      itemValue: winningItem.value,
     };
   }
 }

@@ -337,7 +337,10 @@ Content-Type: application/json
   "serverSeed": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6",
   "clientSeed": "my_seed_123",
   "nonce": 25,
-  "roll": 0.723456789
+      "roll": 0.723456789,
+      "newBalance": 950,
+      "casePrice": 100,
+      "itemValue": 50
 }
 ```
 
@@ -496,6 +499,150 @@ Content-Type: application/json
 
 ---
 
+### Plinko
+
+Базовый путь: `/plinko`
+
+Модуль для игры Plinko. Все эндпоинты требуют авторизации.
+
+#### Запустить игру (Drop)
+
+**POST** `/plinko/drop`
+
+Запускает игру Plinko с указанными параметрами. Списывает общую ставку (amount × balls) с баланса и возвращает результаты для всех шариков.
+
+**Тело запроса:**
+
+```json
+{
+  "amount": 1.0,
+  "balls": 1,
+  "risk": "medium",
+  "lines": 16
+}
+```
+
+- `amount`: Ставка за одну кульку (0.10 - 100)
+- `balls`: Количество кульок (1, 2, 5, 10)
+- `risk`: Уровень риска ("low", "medium", "high")
+- `lines`: Количество рядов кілочків (8-16)
+
+**Успешный ответ (200):**
+
+```json
+{
+  "drops": [
+    {
+      "dropId": "65b...",
+      "path": [0, 1, 1, 0, 1, 0, 0, 1, ...],
+      "slotIndex": 8,
+      "multiplier": 1.5,
+      "winAmount": 1.5,
+      "serverSeed": "seed...",
+      "clientSeed": "seed...",
+      "nonce": 25
+    }
+  ],
+  "totalBet": 1.0,
+  "totalWin": 1.5,
+  "newBalance": 1000.5
+}
+```
+
+**Ошибки:**
+
+- `400` - Недостаточно баланса или неверные параметры
+- `401` - Не авторизован
+
+---
+
+#### Получить множители
+
+**GET** `/plinko/multipliers?risk=medium&lines=16`
+
+Возвращает массив множителей для указанной конфигурации.
+
+**Query параметры:**
+
+- `risk`: Уровень риска ("low", "medium", "high") - обязательное
+- `lines`: Количество рядов (8-16) - обязательное
+
+**Успешный ответ (200):**
+
+```json
+{
+  "multipliers": [110, 41, 10, 5, 3, 1.5, 1, 0.5, 0.3, 0.5, 1, 1.5, 3, 5, 10, 41, 110]
+}
+```
+
+**Ошибки:**
+
+- `400` - Неверные параметры запроса
+- `401` - Не авторизован
+
+---
+
+#### История игр
+
+**GET** `/plinko/history?limit=10&offset=0`
+
+Возвращает историю игр пользователя.
+
+**Query параметры:**
+
+- `limit`: Максимальное количество записей (default: 10, max: 50)
+- `offset`: Смещение (default: 0)
+
+**Успешный ответ (200):**
+
+```json
+{
+  "drops": [
+    {
+      "_id": "65b...",
+      "betAmount": 1.0,
+      "ballsCount": 1,
+      "riskLevel": "medium",
+      "linesCount": 16,
+      "totalWin": 1.5,
+      "avgMultiplier": "1.50",
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+#### Последние игры всех игроков
+
+**GET** `/plinko/recent`
+
+Возвращает последние 20 игр всех игроков (для live feed).
+
+**Успешный ответ (200):**
+
+```json
+{
+  "drops": [
+    {
+      "_id": "65b...",
+      "userId": {
+        "_id": "65a...",
+        "username": "player1"
+      },
+      "betAmount": 1.0,
+      "ballsCount": 1,
+      "riskLevel": "medium",
+      "linesCount": 16,
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
 ### Пользователи
 
 Базовый путь: `/users`
@@ -650,6 +797,7 @@ Authorization: Bearer <your_jwt_token>
 - Все эндпоинты `/api/users/*`
 - Все эндпоинты `/api/cases/*`
 - Все эндпоинты `/api/mines/*`
+- Все эндпоинты `/api/plinko/*`
 - `POST /api/auth/logout` - Выход из системы
 
 ## Коды ошибок
@@ -674,38 +822,57 @@ src/
 │   ├── users/        # Модуль пользователей
 │   │   ├── users.controller.ts
 │   │   ├── users.router.ts
-│   │   ├── users.model.ts
 │   │   ├── users.schema.ts
-│   │   ├── users.types.ts
-│   │   └── ...
+│   │   ├── models/
+│   │   │   ├── users.model.ts
+│   │   │   └── users.types.ts
 │   ├── cases/        # Модуль кейсов (lootbox система)
 │   │   ├── cases.controller.ts
 │   │   ├── cases.router.ts
 │   │   ├── cases.service.ts
 │   │   ├── cases.utils.ts
 │   │   ├── cases.schema.ts
-│   │   ├── cases.model.ts
 │   │   ├── cases.types.ts
-│   │   ├── case-items/       # Подмодуль связи кейс-предмет
-│   │   │   ├── case-items.model.ts
-│   │   │   └── case-items.types.ts
-│   │   ├── case-openings/    # Подмодуль истории открытий
-│   │   │   ├── case-openings.model.ts
-│   │   │   └── case-openings.types.ts
-│   │   ├── items/            # Подмодуль предметов
-│   │   │   ├── items.model.ts
-│   │   │   └── items.types.ts
-│   │   └── rarities/         # Подмодуль редкостей
-│   │       ├── rarities.model.ts
-│   │       └── rarities.types.ts
-│   └── mines/        # Модуль игры Mines
-│       ├── mines.controller.ts
-│       ├── mines.router.ts
-│       ├── mines.service.ts
-│       ├── mines.utils.ts
-│       ├── mines.schema.ts
-│       ├── mines.model.ts
-│       └── mines.types.ts
+│   │   └── models/
+│   │       ├── cases/
+│   │       │   ├── cases.model.ts
+│   │       │   └── cases.types.ts
+│   │       ├── items/
+│   │       │   ├── items.model.ts
+│   │       │   └── items.types.ts
+│   │       ├── rarities/
+│   │       │   ├── rarities.model.ts
+│   │       │   └── rarities.types.ts
+│   │       ├── case-items/
+│   │       │   ├── case-items.model.ts
+│   │       │   └── case-items.types.ts
+│   │       └── case-openings/
+│   │           ├── case-openings.model.ts
+│   │           └── case-openings.types.ts
+│   ├── mines/        # Модуль игры Mines
+│   │   ├── mines.controller.ts
+│   │   ├── mines.router.ts
+│   │   ├── mines.service.ts
+│   │   ├── mines.utils.ts
+│   │   ├── mines.schema.ts
+│   │   └── models/
+│   │       ├── mines.model.ts
+│   │       └── mines.types.ts
+│   └── plinko/       # Модуль игры Plinko
+│       ├── plinco.controller.ts
+│       ├── plinco.router.ts
+│       ├── plinko.service.ts
+│       ├── plinko.schema.ts
+│       └── models/
+│           ├── plinko-drops/
+│           │   ├── plinko-drops.model.ts
+│           │   └── plinko-drops.types.ts
+│           ├── plinko-results/
+│           │   ├── plinko-results.model.ts
+│           │   └── plinko-results.types.ts
+│           └── plinko-multipliers/
+│               ├── plinko-multipliers.model.ts
+│               └── plinko-multipliers.types.ts
 ├── middlewares/      # Промежуточное ПО (общее для всех модулей)
 │   ├── authenticate.ts
 │   └── isValidId.ts

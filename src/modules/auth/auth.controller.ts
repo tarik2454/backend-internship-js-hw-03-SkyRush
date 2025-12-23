@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { Request, Response } from "express";
-import { User } from "../users/users.model";
+import { User } from "../users/models/users.model";
 import { HttpError } from "../../helpers/index";
 import { ctrlWrapper } from "../../decorators/index";
 import { AuthenticatedRequest } from "../../types";

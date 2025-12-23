@@ -26,3 +26,4 @@ export const CaseOpening = model<ICaseOpening>(
   "CaseOpening",
   caseOpeningSchema
 );
+

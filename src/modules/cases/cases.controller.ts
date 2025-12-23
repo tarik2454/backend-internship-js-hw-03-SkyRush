@@ -4,8 +4,6 @@ import {
   CaseDetailsResponse,
   OpenCaseResponse,
 } from "./cases.types";
-import { HydratedDocument } from "mongoose";
-import { IUser } from "../users/users.types";
 import casesService from "./cases.service";
 import { ctrlWrapper } from "../../decorators/index";
 import { AuthenticatedRequest } from "../../types";
@@ -34,7 +32,7 @@ const openCase = async (
 ): Promise<void> => {
   const { id } = req.params;
   const { clientSeed } = req.body;
-  const user = req.user as HydratedDocument<IUser>;
+  const user = req.user;
 
   const result = await casesService.openCase(user, id, clientSeed);
   res.json(result);

@@ -84,6 +84,21 @@ async function register(username, email, password) {
   }
 }
 
+window.addEventListener("balance:update", (event) => {
+  if (event.detail && event.detail.newBalance !== undefined) {
+    const newBalance = event.detail.newBalance;
+    if (currentUser) {
+      currentUser.balance = newBalance;
+      window.currentUser = currentUser;
+      renderUser();
+    } else {
+      loadUser();
+    }
+  } else {
+    loadUser();
+  }
+});
+
 async function loadUser() {
   try {
     const res = await fetch(`${API_URL}/users/current`, {
@@ -97,6 +112,7 @@ async function loadUser() {
       throw new Error("Failed to load user");
     }
     currentUser = await res.json();
+    window.currentUser = currentUser;
     renderUser();
     loadCases();
     checkActiveMinesGame();
@@ -110,37 +126,55 @@ async function loadUser() {
 function logout() {
   token = null;
   currentUser = null;
+  window.currentUser = null;
   localStorage.removeItem("token");
   showAuth();
 }
 
+const tabPlinko = document.getElementById("tab-plinko");
+const plinkoView = document.getElementById("plinko-view");
+
 function switchTab(tab) {
+  tabCases.classList.remove("active");
+  tabCases.classList.add("secondary");
+  casesView.classList.add("hidden");
+
+  tabMines.classList.remove("active");
+  tabMines.classList.add("secondary");
+  minesView.classList.add("hidden");
+
+  if (tabPlinko) {
+    tabPlinko.classList.remove("active");
+    tabPlinko.classList.add("secondary");
+    plinkoView.classList.add("hidden");
+  }
+
   if (tab === "cases") {
     tabCases.classList.add("active");
     tabCases.classList.remove("secondary");
-    tabMines.classList.remove("active");
-    tabMines.classList.add("secondary");
-
     casesView.classList.remove("hidden");
-    minesView.classList.add("hidden");
-  } else {
+  } else if (tab === "mines") {
     tabMines.classList.add("active");
     tabMines.classList.remove("secondary");
-    tabCases.classList.remove("active");
-    tabCases.classList.add("secondary");
-
     minesView.classList.remove("hidden");
-    casesView.classList.add("hidden");
-
     if (minesGrid.children.length === 0) {
       renderMinesGrid();
     }
     loadMinesHistory();
+  } else if (tab === "plinko") {
+    if (tabPlinko) {
+      tabPlinko.classList.add("active");
+      tabPlinko.classList.remove("secondary");
+      plinkoView.classList.remove("hidden");
+      const event = new Event("plinko:shown");
+      document.dispatchEvent(event);
+    }
   }
 }
 
 tabCases.addEventListener("click", () => switchTab("cases"));
 tabMines.addEventListener("click", () => switchTab("mines"));
+if (tabPlinko) tabPlinko.addEventListener("click", () => switchTab("plinko"));
 
 async function loadCases() {
   try {
@@ -157,7 +191,6 @@ async function loadCases() {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function openCase(id) {
   try {
     const caseRes = await fetch(`${API_URL}/cases/${id}`, {
@@ -165,6 +198,25 @@ async function openCase(id) {
     });
     if (!caseRes.ok) throw new Error("Failed to load case details");
     const caseData = await caseRes.json();
+    const casePrice = caseData.price;
+
+    if (!currentUser || currentUser.balance < casePrice) {
+      showToast("Insufficient balance", true);
+      return;
+    }
+
+    if (currentUser) {
+      currentUser.balance -= casePrice;
+      if (typeof window.renderUser === "function") {
+        window.renderUser();
+      }
+      window.dispatchEvent(
+        new CustomEvent("balance:update", {
+          detail: { newBalance: currentUser.balance },
+          bubbles: true,
+        })
+      );
+    }
 
     const res = await fetch(`${API_URL}/cases/${id}/open`, {
       method: "POST",
@@ -175,14 +227,38 @@ async function openCase(id) {
       body: JSON.stringify({}),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.message || "Failed to open case");
+    if (!res.ok) {
+      if (currentUser) {
+        currentUser.balance += casePrice;
+        if (typeof window.renderUser === "function") {
+          window.renderUser();
+        }
+      }
+      throw new Error(data.message || "Failed to open case");
+    }
+
+    if (data.newBalance !== undefined && currentUser) {
+      currentUser.balance = data.newBalance;
+      if (typeof window.renderUser === "function") {
+        window.renderUser();
+      }
+      window.dispatchEvent(
+        new CustomEvent("balance:update", {
+          detail: { newBalance: currentUser.balance },
+          bubbles: true,
+        })
+      );
+    } else {
+      await loadUser();
+    }
 
     showWinModal(data.item, caseData.items);
-    loadUser();
   } catch (err) {
     showToast(err.message, true);
   }
 }
+
+window.openCase = openCase;
 
 async function checkActiveMinesGame() {
   try {
@@ -440,6 +516,8 @@ minesAmountInput.addEventListener("change", () => {
 
 function renderUser() {
   if (!currentUser) return;
+  window.currentUser = currentUser;
+  window.renderUser = renderUser;
   userInfoEl.innerHTML = `
     <div>
       <h2 style="font-size: 1.25rem; font-weight: 600;">${

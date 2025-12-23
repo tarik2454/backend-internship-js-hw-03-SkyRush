@@ -16,3 +16,4 @@ export interface IMinesGame extends Document {
   createdAt: Date;
   finishedAt?: Date;
 }
+

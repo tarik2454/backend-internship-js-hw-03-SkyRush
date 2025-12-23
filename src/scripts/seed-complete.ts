@@ -1,10 +1,10 @@
 import "dotenv/config";
 import mongoose, { HydratedDocument } from "mongoose";
-import { Rarity } from "../modules/cases/rarities/rarities.model";
-import { Item } from "../modules/cases/items/items.model";
-import { Case } from "../modules/cases/cases.model";
-import { CaseItem } from "../modules/cases/case-items/case-items.model";
-import { IRarity } from "../modules/cases/rarities/rarities.types";
+import { Rarity } from "../modules/cases/models/rarities/rarities.model";
+import { Item } from "../modules/cases/models/items/items.model";
+import { Case } from "../modules/cases/models/cases/cases.model";
+import { CaseItem } from "../modules/cases/models/case-items/case-items.model";
+import { IRarity } from "../modules/cases/models/rarities/rarities.types";
 
 const RARITIES = [
   { name: "Common", chance: 55, color: "#9E9E9E" },

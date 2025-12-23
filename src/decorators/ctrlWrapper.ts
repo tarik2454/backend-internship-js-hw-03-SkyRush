@@ -11,8 +11,6 @@ export const ctrlWrapper = <Req extends Request = Request>(
 ) => {
   const func = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      // Приводим req к ожидаемому типу контроллера (Req)
-      // Это безопасно, так как Express передает объект запроса, который мы расширяем
       await ctrl(req as Req, res, next);
     } catch (err) {
       next(err);
