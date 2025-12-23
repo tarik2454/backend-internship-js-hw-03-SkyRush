@@ -49,6 +49,8 @@ const userSchema = new Schema<IUser>(
   { versionKey: false, timestamps: true }
 );
 
+userSchema.index({ email: 1 }, { unique: true });
+
 userSchema.post("save", handleSaveError);
 userSchema.pre("findOneAndUpdate", preUpdate);
 userSchema.post("findOneAndUpdate", handleFindOneAndUpdateError);

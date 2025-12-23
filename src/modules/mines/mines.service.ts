@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { HydratedDocument } from "mongoose";
+import mongoose, { HydratedDocument } from "mongoose";
 import { MinesGame } from "./models/mines.model";
 import { IUser } from "../users/models/users.types";
 import { HttpError } from "../../helpers";
@@ -30,10 +30,6 @@ class MinesService {
       throw HttpError(400, "Insufficient balance");
     }
 
-    user.balance -= amount;
-    user.totalWagered += amount;
-    user.gamesPlayed += 1;
-
     let serverSeed = user.serverSeed;
     if (!serverSeed) {
       serverSeed = crypto.randomBytes(32).toString("hex");
@@ -46,14 +42,9 @@ class MinesService {
       user.clientSeed = crypto.randomBytes(16).toString("hex");
     }
 
-    await user.save();
-
     const nonce = user.gamesPlayed;
     const currentClientSeed = user.clientSeed;
     const gameServerSeed = serverSeed;
-
-    user.serverSeed = crypto.randomBytes(32).toString("hex");
-    await user.save();
 
     const minePositions = generateMinePositions(
       gameServerSeed,
@@ -64,27 +55,51 @@ class MinesService {
 
     const serverSeedHash = hashServerSeed(gameServerSeed);
 
-    const game = await MinesGame.create({
-      userId: user._id,
-      betAmount: amount,
-      minesCount,
-      minePositions,
-      status: "active",
-      serverSeed: gameServerSeed,
-      serverSeedHash,
-      clientSeed: currentClientSeed,
-      nonce,
-    });
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    const multipliers = generateMultiplierTable(minesCount);
+    try {
+      user.balance -= amount;
+      user.totalWagered += amount;
+      user.gamesPlayed += 1;
+      user.serverSeed = crypto.randomBytes(32).toString("hex");
 
-    return {
-      gameId: game._id,
-      amount,
-      minesCount,
-      serverSeedHash,
-      multipliers,
-    };
+      await user.save({ session });
+
+      const game = await MinesGame.create(
+        [
+          {
+            userId: user._id,
+            betAmount: amount,
+            minesCount,
+            minePositions,
+            status: "active",
+            serverSeed: gameServerSeed,
+            serverSeedHash,
+            clientSeed: currentClientSeed,
+            nonce,
+          },
+        ],
+        { session }
+      );
+
+      await session.commitTransaction();
+
+      const multipliers = generateMultiplierTable(minesCount);
+
+      return {
+        gameId: game[0]._id,
+        amount,
+        minesCount,
+        serverSeedHash,
+        multipliers,
+      };
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
   }
 
   async revealMine(
@@ -141,26 +156,38 @@ class MinesService {
         Math.floor(game.betAmount * currentMultiplier * 100) / 100;
 
       if (safeTilesLeft === 0) {
-        game.status = "won";
-        game.winAmount = currentValue;
-        game.cashoutMultiplier = currentMultiplier;
-        game.finishedAt = new Date();
-        await game.save();
+        const session = await mongoose.startSession();
+        session.startTransaction();
 
-        user.balance += currentValue;
-        user.totalWon += currentValue;
-        await user.save();
+        try {
+          game.status = "won";
+          game.winAmount = currentValue;
+          game.cashoutMultiplier = currentMultiplier;
+          game.finishedAt = new Date();
+          await game.save({ session });
 
-        return {
-          position,
-          isMine: false,
-          currentMultiplier,
-          currentValue,
-          revealedTiles: game.revealedPositions,
-          safeTilesLeft,
-          status: "won",
-          winAmount: currentValue,
-        };
+          user.balance += currentValue;
+          user.totalWon += currentValue;
+          await user.save({ session });
+
+          await session.commitTransaction();
+
+          return {
+            position,
+            isMine: false,
+            currentMultiplier,
+            currentValue,
+            revealedTiles: game.revealedPositions,
+            safeTilesLeft,
+            status: "won",
+            winAmount: currentValue,
+          };
+        } catch (error) {
+          await session.abortTransaction();
+          throw error;
+        } finally {
+          session.endSession();
+        }
       }
 
       await game.save();
@@ -201,22 +228,34 @@ class MinesService {
     const winAmount =
       Math.floor(game.betAmount * currentMultiplier * 100) / 100;
 
-    game.status = "won";
-    game.winAmount = winAmount;
-    game.cashoutMultiplier = currentMultiplier;
-    game.finishedAt = new Date();
-    await game.save();
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    user.balance += winAmount;
-    user.totalWon += winAmount;
-    await user.save();
+    try {
+      game.status = "won";
+      game.winAmount = winAmount;
+      game.cashoutMultiplier = currentMultiplier;
+      game.finishedAt = new Date();
+      await game.save({ session });
 
-    return {
-      winAmount,
-      multiplier: currentMultiplier,
-      serverSeed: game.serverSeed,
-      minePositions: game.minePositions,
-    };
+      user.balance += winAmount;
+      user.totalWon += winAmount;
+      await user.save({ session });
+
+      await session.commitTransaction();
+
+      return {
+        winAmount,
+        multiplier: currentMultiplier,
+        serverSeed: game.serverSeed,
+        minePositions: game.minePositions,
+      };
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
   }
 
   async getActiveGame(user: HydratedDocument<IUser>) {

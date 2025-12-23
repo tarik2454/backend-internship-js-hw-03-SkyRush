@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import mongoose, { HydratedDocument, Document } from "mongoose";
 import { Case } from "./models/cases/cases.model";
 import { CaseOpening } from "./models/case-openings/case-openings.model";
 import { CaseItem as CaseItemModel } from "./models/case-items/case-items.model";
@@ -16,7 +17,12 @@ import {
 import { generateRoll } from "./cases.utils";
 import { IUser } from "../users/models/users.types";
 import { HttpError } from "../../helpers/index";
-import { HydratedDocument } from "mongoose";
+
+const toPopulatedCaseItem = (
+  doc: Document
+): PopulatedCaseItem => {
+  return doc as unknown as PopulatedCaseItem;
+};
 
 class CasesService {
   async getAllCases(): Promise<CasesResponse> {
@@ -43,7 +49,8 @@ class CasesService {
     });
 
     const items: CaseDetailsItem[] = caseItems.map((ci) => {
-      const item = (ci as unknown as PopulatedCaseItem).itemId;
+      const populatedCaseItem = toPopulatedCaseItem(ci);
+      const item = populatedCaseItem.itemId;
       return {
         id: item._id.toString(),
         name: item.name,
@@ -86,23 +93,16 @@ class CasesService {
       throw HttpError(400, "Case is empty");
     }
 
-    user.balance -= caseToOpen.price;
-    user.totalWagered += caseToOpen.price;
-    user.gamesPlayed += 1;
-
     let serverSeed = user.serverSeed;
     if (!serverSeed) {
       serverSeed = crypto.randomBytes(32).toString("hex");
-      user.serverSeed = serverSeed;
     }
 
-    user.clientSeed = clientSeed;
-
-    const nonce = user.gamesPlayed;
+    const nonce = user.gamesPlayed + 1;
 
     const rollValue = generateRoll(serverSeed, clientSeed, nonce);
 
-    user.serverSeed = crypto.randomBytes(32).toString("hex");
+    const newServerSeed = crypto.randomBytes(32).toString("hex");
 
     let winningCaseItem = caseItems[caseItems.length - 1];
     let cumulative = 0;
@@ -116,44 +116,67 @@ class CasesService {
       }
     }
 
-    const winningItem = (winningCaseItem as unknown as PopulatedCaseItem)
-      .itemId;
+    const winningItem = toPopulatedCaseItem(winningCaseItem).itemId;
 
-    user.balance += winningItem.value;
-    
-    user.totalWon += winningItem.value;
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    await user.save();
+    try {
+      if (!user.serverSeed) {
+        user.serverSeed = serverSeed;
+      }
+      user.clientSeed = clientSeed;
+      user.balance -= caseToOpen.price;
+      user.totalWagered += caseToOpen.price;
+      user.gamesPlayed += 1;
+      user.balance += winningItem.value;
+      user.totalWon += winningItem.value;
+      user.serverSeed = newServerSeed;
 
-    const opening = await CaseOpening.create({
-      userId: user._id,
-      caseId: caseToOpen._id,
-      itemId: winningItem._id,
-      rollValue,
-      serverSeed,
-      clientSeed,
-      nonce,
-    });
+      await user.save({ session });
 
-    const wonItem: WonItem = {
-      id: winningItem._id.toString(),
-      name: winningItem.name,
-      rarity: winningItem.rarityId.name,
-      value: winningItem.value,
-      image: winningItem.imageUrl,
-    };
+      const opening = await CaseOpening.create(
+        [
+          {
+            userId: user._id,
+            caseId: caseToOpen._id,
+            itemId: winningItem._id,
+            rollValue,
+            serverSeed,
+            clientSeed,
+            nonce,
+          },
+        ],
+        { session }
+      );
 
-    return {
-      openingId: opening._id as string,
-      item: wonItem,
-      serverSeed,
-      clientSeed,
-      nonce,
-      roll: rollValue,
-      newBalance: user.balance,
-      casePrice: caseToOpen.price,
-      itemValue: winningItem.value,
-    };
+      await session.commitTransaction();
+
+      const wonItem: WonItem = {
+        id: winningItem._id.toString(),
+        name: winningItem.name,
+        rarity: winningItem.rarityId.name,
+        value: winningItem.value,
+        image: winningItem.imageUrl,
+      };
+
+      return {
+        openingId: opening[0]._id as string,
+        item: wonItem,
+        serverSeed,
+        clientSeed,
+        nonce,
+        roll: rollValue,
+        newBalance: user.balance,
+        casePrice: caseToOpen.price,
+        itemValue: winningItem.value,
+      };
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
   }
 }
 

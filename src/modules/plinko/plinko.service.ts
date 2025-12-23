@@ -1,7 +1,9 @@
 import crypto from "crypto";
+import mongoose from "mongoose";
 import { User } from "../users/models/users.model";
 import { PlinkoDrop } from "./models/plinko-drops/plinko-drops.model";
 import { PlinkoResult } from "./models/plinko-results/plinko-results.model";
+import { HttpError } from "../../helpers";
 
 export class PlinkoService {
   private static readonly MULTIPLIERS = {
@@ -114,11 +116,11 @@ export class PlinkoService {
 
     const user = await User.findById(userId);
     if (!user) {
-      throw new Error("User not found");
+      throw HttpError(404, "User not found");
     }
 
     if (user.balance < totalBet) {
-      throw new Error("Insufficient balance");
+      throw HttpError(400, "Insufficient balance");
     }
 
     if (!user.serverSeed)
@@ -130,82 +132,108 @@ export class PlinkoService {
     const serverSeed = user.serverSeed;
     const clientSeed = user.clientSeed;
 
-    user.balance -= totalBet;
-    user.totalWagered += totalBet;
-    user.gamesPlayed += 1;
-    const drop = await PlinkoDrop.create({
-      userId,
-      betAmount: amount,
-      ballsCount: balls,
-      riskLevel: risk,
-      linesCount: lines,
-    });
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    const dropsResults = [];
-    let totalWin = 0;
+    try {
+      user.balance -= totalBet;
+      user.totalWagered += totalBet;
+      user.gamesPlayed += 1;
 
-    for (let i = 0; i < balls; i++) {
-      user.nonce += 1;
-      const currentNonce = user.nonce;
-
-      const path = this.generateBallPath(
-        serverSeed,
-        clientSeed,
-        currentNonce,
-        lines
+      const drop = await PlinkoDrop.create(
+        [
+          {
+            userId,
+            betAmount: amount,
+            ballsCount: balls,
+            riskLevel: risk,
+            linesCount: lines,
+          },
+        ],
+        { session }
       );
-      const slotIndex = this.calculateSlotIndex(path);
 
-      const multipliers = this.getMultipliers(lines, risk);
-      if (!multipliers || multipliers.length === 0) {
-        throw new Error(`Invalid configuration: Lines ${lines}, Risk ${risk}`);
+      const dropsResults = [];
+      let totalWin = 0;
+
+      for (let i = 0; i < balls; i++) {
+        user.nonce += 1;
+        const currentNonce = user.nonce;
+
+        const path = this.generateBallPath(
+          serverSeed,
+          clientSeed,
+          currentNonce,
+          lines
+        );
+        const slotIndex = this.calculateSlotIndex(path);
+
+        const multipliers = this.getMultipliers(lines, risk);
+        if (!multipliers || multipliers.length === 0) {
+          throw HttpError(
+            400,
+            `Invalid configuration: Lines ${lines}, Risk ${risk}`
+          );
+        }
+
+        const multiplier = multipliers[slotIndex];
+        if (multiplier === undefined) {
+          throw HttpError(
+            500,
+            `Invalid slot index ${slotIndex} for lines ${lines}`
+          );
+        }
+
+        const winAmount = amount * multiplier;
+        totalWin += winAmount;
+
+        dropsResults.push({
+          dropId: drop[0]._id,
+          ballIndex: i,
+          path,
+          slotIndex,
+          multiplier,
+          winAmount,
+          serverSeed,
+          clientSeed,
+          nonce: currentNonce,
+        });
       }
 
-      const multiplier = multipliers[slotIndex];
-      if (multiplier === undefined) {
-        throw new Error(`Invalid slot index ${slotIndex} for lines ${lines}`);
+      user.balance += totalWin;
+      if (totalWin > 0) {
+        user.totalWon += totalWin;
       }
 
-      const winAmount = amount * multiplier;
-      totalWin += winAmount;
+      await user.save({ session });
 
-      dropsResults.push({
-        dropId: drop._id,
-        ballIndex: i,
-        path,
-        slotIndex,
-        multiplier,
-        winAmount,
-        serverSeed,
-        clientSeed,
-        nonce: currentNonce,
-      });
+      if (dropsResults.length > 0) {
+        await PlinkoResult.insertMany(dropsResults, { session });
+      }
+
+      await session.commitTransaction();
+
+      return {
+        drops: dropsResults.map((r) => ({
+          dropId: r.dropId,
+          path: r.path,
+          slotIndex: r.slotIndex,
+          multiplier: r.multiplier,
+          winAmount: r.winAmount,
+          serverSeed: r.serverSeed,
+          clientSeed: r.clientSeed,
+          nonce: r.nonce,
+        })),
+        totalBet,
+        totalWin,
+        newBalance: user.balance,
+      };
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
     }
-
-    user.balance += totalWin;
-    if (totalWin > 0) {
-      user.totalWon += totalWin;
-    }
-
-    await user.save();
-
-    await PlinkoResult.insertMany(dropsResults);
-
-    return {
-      drops: dropsResults.map((r) => ({
-        dropId: r.dropId,
-        path: r.path,
-        slotIndex: r.slotIndex,
-        multiplier: r.multiplier,
-        winAmount: r.winAmount,
-        serverSeed: r.serverSeed,
-        clientSeed: r.clientSeed,
-        nonce: r.nonce,
-      })),
-      totalBet,
-      totalWin,
-      newBalance: user.balance,
-    };
   }
 
   static async getHistory(userId: string, limit = 20, offset = 0) {

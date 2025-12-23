@@ -3,7 +3,8 @@ import mongoose from "mongoose";
 import app from "./app";
 import { validateEnv } from "./config/env";
 
-// Validate environment variables before connecting to DB
+const PORT = process.env.PORT || 3000;
+
 validateEnv();
 
 mongoose
@@ -11,9 +12,9 @@ mongoose
     writeConcern: { w: "majority" },
   })
   .then(() => {
-    app.listen(process.env.PORT || 3000, () => {
+    app.listen(PORT, () => {
       console.log(
-        "Database connection successful. Server running. Use our API on port: 3000"
+        `Database connection successful. Server running on port: ${PORT}`
       );
     });
   })

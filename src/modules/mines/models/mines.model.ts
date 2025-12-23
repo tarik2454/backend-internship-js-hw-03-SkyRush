@@ -50,7 +50,7 @@ const minesGameSchema = new Schema<IMinesGame>(
   }
 );
 
-minesGameSchema.index({ userId: 1, createdAt: -1 });
 minesGameSchema.index({ userId: 1, status: 1 });
+minesGameSchema.index({ userId: 1, createdAt: -1 });
 
 export const MinesGame = model<IMinesGame>("MinesGame", minesGameSchema);

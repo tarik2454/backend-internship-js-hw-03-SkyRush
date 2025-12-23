@@ -16,6 +16,8 @@ const plinkoResultSchema = new Schema<IPlinkoResult>(
   { timestamps: true, versionKey: false }
 );
 
+plinkoResultSchema.index({ dropId: 1 });
+
 export const PlinkoResult = model<IPlinkoResult>(
   "PlinkoResult",
   plinkoResultSchema

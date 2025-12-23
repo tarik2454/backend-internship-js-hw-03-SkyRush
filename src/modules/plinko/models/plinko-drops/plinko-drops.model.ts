@@ -16,5 +16,7 @@ const plinkoDropSchema = new Schema<IPlinkoDrop>(
   { timestamps: true, versionKey: false }
 );
 
+plinkoDropSchema.index({ userId: 1, createdAt: -1 });
+
 export const PlinkoDrop = model<IPlinkoDrop>("PlinkoDrop", plinkoDropSchema);
 

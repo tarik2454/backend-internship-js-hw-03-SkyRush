@@ -16,5 +16,7 @@ const caseSchema = new Schema<ICase>(
   }
 );
 
+caseSchema.index({ isActive: 1 });
+
 export const Case = model<ICase>("Case", caseSchema);
 
