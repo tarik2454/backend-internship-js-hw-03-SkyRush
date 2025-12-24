@@ -22,6 +22,7 @@ app.use(
   helmet({
     contentSecurityPolicy:
       process.env.NODE_ENV === "development" ? false : undefined,
+    crossOriginEmbedderPolicy: false,
   })
 );
 app.use(logger(formatsLogger));
@@ -39,7 +40,24 @@ app.use(
 app.use(express.json({ limit: "10kb" }));
 app.use(express.static(path.join(__dirname, "../public")));
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+const swaggerUiOptions = {
+  customCss: ".swagger-ui .topbar { display: none }",
+  customSiteTitle: "SkyRush API Documentation",
+  customCssUrl: "https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css",
+  customJs: [
+    "https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-bundle.js",
+    "https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-standalone-preset.js",
+  ],
+  swaggerOptions: {
+    persistAuthorization: true,
+  },
+};
+
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, swaggerUiOptions)
+);
 
 app.use("/api/auth/login", loginLimiter);
 app.use("/api/auth/register", registerLimiter);
