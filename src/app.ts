@@ -3,6 +3,8 @@ import path from "path";
 import logger from "morgan";
 import cors from "cors";
 import helmet from "helmet";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./config/swagger";
 import { authRouter } from "./modules/auth/auth.router";
 import { userRouter } from "./modules/users/users.router";
 import { caseRouter } from "./modules/cases/cases.router";
@@ -31,6 +33,8 @@ app.use(
 );
 app.use(express.json({ limit: "10kb" }));
 app.use(express.static(path.join(__dirname, "../public")));
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/api/auth/login", loginLimiter);
 app.use("/api/auth/register", registerLimiter);
