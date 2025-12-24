@@ -576,11 +576,21 @@ function renderUser() {
       )}</h2>
       <p style="color: var(--text-dim);">${escapeHtml(currentUser.email)}</p>
     </div>
-    <div style="text-align: right;">
-      <div style="font-size: 1.5rem; color: var(--accent-success); font-weight: 700;">$${currentUser.balance.toFixed(
-        2
-      )}</div>
-      <div style="font-size: 0.875rem; color: var(--text-dim);">Balance</div>
+    <div style="display: flex; gap: 1rem; align-items: center;">
+      <button 
+        id="audit-logs-btn" 
+        class="secondary" 
+        style="font-size: 0.875rem; padding: 0.5rem 1rem;"
+        onclick="if(typeof openAuditModal === 'function') openAuditModal();"
+      >
+        📋 Audit Logs
+      </button>
+      <div style="text-align: right;">
+        <div style="font-size: 1.5rem; color: var(--accent-success); font-weight: 700;">$${currentUser.balance.toFixed(
+          2
+        )}</div>
+        <div style="font-size: 0.875rem; color: var(--text-dim);">Balance</div>
+      </div>
     </div>
   `;
 }

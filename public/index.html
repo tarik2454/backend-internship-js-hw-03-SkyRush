@@ -484,6 +484,79 @@
       </div>
     </div>
 
+    <!-- Audit Logs Modal -->
+    <div id="audit-modal" class="modal hidden">
+      <div class="modal-content" style="max-width: 1000px; max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+          <h2 style="margin: 0;">Audit Logs</h2>
+          <button id="audit-modal-close" class="secondary" style="padding: 0.5rem 1rem;">✕ Close</button>
+        </div>
+        
+        <div style="margin-bottom: 1rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+          <select id="audit-filter-type" style="padding: 0.5rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: white; border-radius: 0.5rem;">
+            <option value="">All Types</option>
+            <option value="User">User</option>
+            <option value="MinesGame">MinesGame</option>
+            <option value="PlinkoDrop">PlinkoDrop</option>
+            <option value="CaseOpening">CaseOpening</option>
+            <option value="BonusClaim">BonusClaim</option>
+            <option value="LeaderboardStats">LeaderboardStats</option>
+          </select>
+          <input 
+            type="number" 
+            id="audit-filter-limit" 
+            placeholder="Limit (max 100)" 
+            value="50" 
+            min="1" 
+            max="100"
+            style="padding: 0.5rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: white; border-radius: 0.5rem; width: 150px;"
+          />
+          <button id="audit-refresh-btn" class="secondary" style="padding: 0.5rem 1rem;">🔄 Refresh</button>
+        </div>
+
+        <div id="audit-loading" style="text-align: center; padding: 2rem; color: var(--text-dim);">
+          Loading...
+        </div>
+
+        <div id="audit-error" class="hidden" style="text-align: center; padding: 2rem; color: #ff4444;"></div>
+
+        <div id="audit-stats" style="margin-bottom: 1rem; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 0.5rem;">
+          <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+            <div>
+              <div style="color: var(--text-dim); font-size: 0.875rem;">Total Logs</div>
+              <div id="audit-total" style="font-size: 1.25rem; font-weight: 600;">-</div>
+            </div>
+            <div>
+              <div style="color: var(--text-dim); font-size: 0.875rem;">Showing</div>
+              <div id="audit-showing" style="font-size: 1.25rem; font-weight: 600;">-</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="padding: 0; overflow: hidden;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+            <thead style="background-color: rgba(255, 255, 255, 0.05); color: var(--text-dim);">
+              <tr>
+                <th style="padding: 0.75rem; text-align: left;">Time</th>
+                <th style="padding: 0.75rem; text-align: left;">Action</th>
+                <th style="padding: 0.75rem; text-align: left;">Type</th>
+                <th style="padding: 0.75rem; text-align: left;">User</th>
+                <th style="padding: 0.75rem; text-align: left;">IP</th>
+                <th style="padding: 0.75rem; text-align: left;">Details</th>
+              </tr>
+            </thead>
+            <tbody id="audit-logs-table">
+              <tr>
+                <td colspan="6" style="padding: 2rem; text-align: center; color: var(--text-dim);">
+                  No logs found
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <div id="toast"></div>
 
     <script src="js/plinko.js"></script>
@@ -493,5 +566,6 @@
     </script>
     <script src="js/bonus.js"></script>
     <script src="js/leaderboard.js"></script>
+    <script src="js/audit.js"></script>
   </body>
 </html>

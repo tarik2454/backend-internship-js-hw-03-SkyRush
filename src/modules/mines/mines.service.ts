@@ -67,29 +67,27 @@ class MinesService {
     session.startTransaction();
 
     try {
-      const updatedUser = await mongoose
-        .model("User")
-        .findOneAndUpdate(
-          {
-            _id: user._id,
-            balance: { $gte: amount },
+      const updatedUser = await mongoose.model("User").findOneAndUpdate(
+        {
+          _id: user._id,
+          balance: { $gte: amount },
+        },
+        {
+          $inc: {
+            balance: -amount,
+            totalWagered: amount,
+            gamesPlayed: 1,
           },
-          {
-            $inc: {
-              balance: -amount,
-              totalWagered: amount,
-              gamesPlayed: 1,
-            },
-            $set: {
-              serverSeed: crypto.randomBytes(32).toString("hex"),
-            },
+          $set: {
+            serverSeed: crypto.randomBytes(32).toString("hex"),
           },
-          {
-            session,
-            new: true,
-            runValidators: true,
-          }
-        );
+        },
+        {
+          session,
+          new: true,
+          runValidators: true,
+        }
+      );
 
       if (!updatedUser) {
         throw HttpError(400, "Insufficient balance or user not found");
@@ -295,18 +293,16 @@ class MinesService {
             { session }
           );
 
-          await mongoose
-            .model("User")
-            .findByIdAndUpdate(
-              user._id,
-              {
-                $inc: {
-                  balance: currentValue,
-                  totalWon: currentValue,
-                },
+          await mongoose.model("User").findByIdAndUpdate(
+            user._id,
+            {
+              $inc: {
+                balance: currentValue,
+                totalWon: currentValue,
               },
-              { session }
-            );
+            },
+            { session }
+          );
 
           await session.commitTransaction();
 
@@ -458,18 +454,16 @@ class MinesService {
         { session }
       );
 
-      await mongoose
-        .model("User")
-        .findByIdAndUpdate(
-          user._id,
-          {
-            $inc: {
-              balance: winAmount,
-              totalWon: winAmount,
-            },
+      await mongoose.model("User").findByIdAndUpdate(
+        user._id,
+        {
+          $inc: {
+            balance: winAmount,
+            totalWon: winAmount,
           },
-          { session }
-        );
+        },
+        { session }
+      );
 
       await session.commitTransaction();
 
@@ -534,7 +528,7 @@ class MinesService {
   async getHistory(user: HydratedDocument<IUser>, limit = 10, offset = 0) {
     const games = await MinesGame.find({
       userId: user._id,
-      status: { $in: ["won", "lost"] },
+      status: { $in: ["won", "lost", "cashed_out"] },
     })
       .sort({ finishedAt: -1, createdAt: -1 })
       .skip(offset)

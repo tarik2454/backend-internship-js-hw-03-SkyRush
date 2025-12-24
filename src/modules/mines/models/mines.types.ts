@@ -6,7 +6,7 @@ export interface IMinesGame extends Document {
   minesCount: number;
   minePositions: number[];
   revealedPositions: number[];
-  status: "active" | "won" | "lost";
+  status: "active" | "won" | "lost" | "cashed_out";
   cashoutMultiplier?: number;
   winAmount?: number;
   serverSeed: string;

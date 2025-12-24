@@ -29,7 +29,7 @@ const minesGameSchema = new Schema<IMinesGame>(
     },
     status: {
       type: String,
-      enum: ["active", "won", "lost"],
+      enum: ["active", "won", "lost", "cashed_out"],
       required: true,
       default: "active",
     },
