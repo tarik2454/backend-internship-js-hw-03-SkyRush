@@ -21,7 +21,33 @@ const formatsLogger = app.get("env") === "development" ? "dev" : "short";
 app.use(
   helmet({
     contentSecurityPolicy:
-      process.env.NODE_ENV === "development" ? false : undefined,
+      process.env.NODE_ENV === "development"
+        ? false
+        : {
+            directives: {
+              defaultSrc: ["'self'"],
+              styleSrc: [
+                "'self'",
+                "'unsafe-inline'",
+                "https://unpkg.com",
+                "https://cdn.jsdelivr.net",
+              ],
+              scriptSrc: [
+                "'self'",
+                "'unsafe-inline'",
+                "'unsafe-eval'",
+                "https://unpkg.com",
+                "https://cdn.jsdelivr.net",
+              ],
+              connectSrc: [
+                "'self'",
+                "https://unpkg.com",
+                "https://cdn.jsdelivr.net",
+              ],
+              imgSrc: ["'self'", "data:", "https:"],
+              fontSrc: ["'self'", "https:", "data:"],
+            },
+          },
     crossOriginEmbedderPolicy: false,
   })
 );
@@ -43,10 +69,10 @@ app.use(express.static(path.join(__dirname, "../public")));
 const swaggerUiOptions = {
   customCss: ".swagger-ui .topbar { display: none }",
   customSiteTitle: "SkyRush API Documentation",
-  customCssUrl: "https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css",
+  customCssUrl: "https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui.css",
   customJs: [
-    "https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-bundle.js",
-    "https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-standalone-preset.js",
+    "https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-bundle.js",
+    "https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-standalone-preset.js",
   ],
   swaggerOptions: {
     persistAuthorization: true,
