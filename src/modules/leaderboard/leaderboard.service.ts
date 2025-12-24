@@ -80,7 +80,16 @@ class LeaderboardService {
       .lean();
 
     const players: LeaderboardPlayer[] = stats
-      .filter((stat) => stat.userId !== null && stat.userId !== undefined)
+      .filter((stat) => {
+        if (!stat.userId || typeof stat.userId !== "object") {
+          return false;
+        }
+        const user = stat.userId as unknown as {
+          _id?: Types.ObjectId;
+          username?: string;
+        };
+        return user._id && user.username;
+      })
       .map((stat, index) => {
         const user = stat.userId as unknown as {
           _id: Types.ObjectId;
@@ -113,49 +122,56 @@ class LeaderboardService {
 
       if (
         currentUserStat &&
-        currentUserStat.userId !== null &&
-        currentUserStat.userId !== undefined
+        currentUserStat.userId &&
+        typeof currentUserStat.userId === "object"
       ) {
         const user = currentUserStat.userId as unknown as {
-          _id: Types.ObjectId;
-          username: string;
+          _id?: Types.ObjectId;
+          username?: string;
         };
-        const winRate =
-          currentUserStat.gamesPlayed > 0
-            ? Math.round(
-                (currentUserStat.gamesWon / currentUserStat.gamesPlayed) *
-                  100 *
-                  100
-              ) / 100
-            : 0;
+        if (user._id && user.username) {
+          const typedUser = user as {
+            _id: Types.ObjectId;
+            username: string;
+          };
+          const winRate =
+            currentUserStat.gamesPlayed > 0
+              ? Math.round(
+                  (currentUserStat.gamesWon / currentUserStat.gamesPlayed) *
+                    100 *
+                    100
+                ) / 100
+              : 0;
 
-        let rank =
-          stats.findIndex(
-            (s) =>
-              s.userId !== null &&
-              s.userId !== undefined &&
-              (
-                s.userId as unknown as { _id: Types.ObjectId }
-              )._id.toString() === currentUserId.toString()
-          ) + 1;
+          let rank =
+            stats.findIndex((s) => {
+              if (!s.userId || typeof s.userId !== "object") {
+                return false;
+              }
+              const user = s.userId as unknown as { _id?: Types.ObjectId };
+              return (
+                user._id && user._id.toString() === currentUserId.toString()
+              );
+            }) + 1;
 
-        if (rank === 0) {
-          const betterCount = await LeaderboardStats.countDocuments({
-            periodType: period,
-            periodStart,
-            totalWagered: { $gt: currentUserStat.totalWagered },
-            gamesPlayed: { $gt: 0 },
-          });
-          rank = betterCount + 1;
+          if (rank === 0) {
+            const betterCount = await LeaderboardStats.countDocuments({
+              periodType: period,
+              periodStart,
+              totalWagered: { $gt: currentUserStat.totalWagered },
+              gamesPlayed: { $gt: 0 },
+            });
+            rank = betterCount + 1;
+          }
+
+          currentUser = {
+            rank,
+            username: typedUser.username,
+            totalWagered: currentUserStat.totalWagered,
+            gamesPlayed: currentUserStat.gamesPlayed,
+            winRate,
+          };
         }
-
-        currentUser = {
-          rank,
-          username: user.username,
-          totalWagered: currentUserStat.totalWagered,
-          gamesPlayed: currentUserStat.gamesPlayed,
-          winRate,
-        };
       }
     }
 
