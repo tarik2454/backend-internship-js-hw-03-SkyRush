@@ -34,7 +34,13 @@ const openCase = async (
   const { clientSeed } = req.body;
   const user = req.user;
 
-  const result = await casesService.openCase(user, id, clientSeed);
+  const result = await casesService.openCase(
+    user,
+    id,
+    clientSeed,
+    req.ip,
+    req.userAgent
+  );
   res.json(result);
 };
 

@@ -1,5 +1,9 @@
 import express from "express";
-import { authenticate, generalLimiter } from "../../middlewares/index";
+import {
+  authenticate,
+  collectRequestInfo,
+  generalLimiter,
+} from "../../middlewares/index";
 import claimBonusController from "./bonus.controller";
 
 const claimBonusRouter = express.Router();
@@ -14,6 +18,7 @@ claimBonusRouter.get(
 claimBonusRouter.post(
   "/claim",
   authenticate,
+  collectRequestInfo,
   generalLimiter,
   claimBonusController.claimBonus
 );

@@ -10,13 +10,16 @@ import {
   hashServerSeed,
 } from "./mines.utils";
 import leaderboardService from "../leaderboard/leaderboard.service";
+import auditService from "../audit/audit.service";
 
 class MinesService {
   async startMine(
     user: HydratedDocument<IUser>,
     amount: number,
     minesCount: number,
-    clientSeed?: string
+    clientSeed?: string,
+    ipAddress?: string,
+    userAgent?: string
   ) {
     const activeGame = await MinesGame.findOne({
       userId: user._id,
@@ -27,8 +30,12 @@ class MinesService {
       throw HttpError(400, "You already have an active game");
     }
 
-    if (user.balance < amount) {
-      throw HttpError(400, "Insufficient balance");
+    if (amount < 0.1 || amount > 10000) {
+      throw HttpError(400, "Bet amount must be between 0.10 and 10000");
+    }
+
+    if (minesCount < 1 || minesCount > 24) {
+      throw HttpError(400, "Mines count must be between 1 and 24");
     }
 
     let serverSeed = user.serverSeed;
@@ -60,12 +67,46 @@ class MinesService {
     session.startTransaction();
 
     try {
-      user.balance -= amount;
-      user.totalWagered += amount;
-      user.gamesPlayed += 1;
-      user.serverSeed = crypto.randomBytes(32).toString("hex");
+      const updatedUser = await mongoose
+        .model("User")
+        .findOneAndUpdate(
+          {
+            _id: user._id,
+            balance: { $gte: amount },
+          },
+          {
+            $inc: {
+              balance: -amount,
+              totalWagered: amount,
+              gamesPlayed: 1,
+            },
+            $set: {
+              serverSeed: crypto.randomBytes(32).toString("hex"),
+            },
+          },
+          {
+            session,
+            new: true,
+            runValidators: true,
+          }
+        );
 
-      await user.save({ session });
+      if (!updatedUser) {
+        throw HttpError(400, "Insufficient balance or user not found");
+      }
+
+      const activeGameInTx = await MinesGame.findOne(
+        {
+          userId: user._id,
+          status: "active",
+        },
+        null,
+        { session }
+      );
+
+      if (activeGameInTx) {
+        throw HttpError(400, "You already have an active game");
+      }
 
       const game = await MinesGame.create(
         [
@@ -85,6 +126,32 @@ class MinesService {
       );
 
       await session.commitTransaction();
+
+      auditService
+        .log({
+          userId: user._id,
+          action: "BET",
+          entityType: "MinesGame",
+          entityId: game[0]._id,
+          oldValue: {
+            balance: user.balance + amount,
+            totalWagered: user.totalWagered - amount,
+            gamesPlayed: user.gamesPlayed - 1,
+          },
+          newValue: {
+            balance: updatedUser.balance,
+            totalWagered: updatedUser.totalWagered,
+            gamesPlayed: updatedUser.gamesPlayed,
+            gameId: game[0]._id.toString(),
+            betAmount: amount,
+            minesCount,
+          },
+          ipAddress,
+          userAgent,
+        })
+        .catch((err) => {
+          console.error("Audit log failed:", err);
+        });
 
       const multipliers = generateMultiplierTable(minesCount);
 
@@ -106,81 +173,140 @@ class MinesService {
   async revealMine(
     user: HydratedDocument<IUser>,
     gameId: string,
-    position: number
+    position: number,
+    ipAddress?: string,
+    userAgent?: string
   ) {
-    const game = await MinesGame.findOne({
-      _id: gameId,
-      userId: user._id,
-    });
-
-    if (!game) {
-      throw HttpError(404, "Game not found");
+    if (position < 0 || position > 24) {
+      throw HttpError(400, "Position must be between 0 and 24");
     }
 
-    if (game.status !== "active") {
-      throw HttpError(400, "Game is not active");
-    }
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    if (game.revealedPositions.includes(position)) {
-      throw HttpError(400, "Position already revealed");
-    }
-
-    const isMine = game.minePositions.includes(position);
-
-    if (isMine) {
-      game.status = "lost";
-      game.revealedPositions.push(position);
-      game.finishedAt = new Date();
-      await game.save();
-
-      const isWin = false;
-      const netWin = -game.betAmount;
-      leaderboardService
-        .updateStats(user._id, game.betAmount, netWin, isWin)
-        .catch((err) => {
-          console.error("Leaderboard update failed", {
-            userId: user._id.toString(),
-            error: err,
-          });
-        });
-
-      return {
-        position,
-        isMine: true,
-        currentMultiplier: 0,
-        currentValue: 0,
-        revealedTiles: game.revealedPositions,
-        safeTilesLeft: 0,
-        minePositions: game.minePositions,
-      };
-    } else {
-      game.revealedPositions.push(position);
-
-      const safeTilesTotal = 25 - game.minesCount;
-      const safeTilesLeft = safeTilesTotal - game.revealedPositions.length;
-
-      const currentMultiplier = calculateMultiplier(
-        game.minesCount,
-        game.revealedPositions.length
+    try {
+      const game = await MinesGame.findOneAndUpdate(
+        {
+          _id: gameId,
+          userId: user._id,
+          status: "active",
+          revealedPositions: { $ne: position },
+        },
+        {
+          $addToSet: { revealedPositions: position },
+        },
+        {
+          session,
+          new: true,
+        }
       );
 
-      const currentValue =
-        Math.floor(game.betAmount * currentMultiplier * 100) / 100;
+      if (!game) {
+        throw HttpError(
+          400,
+          "Game not found, not active, or position already revealed"
+        );
+      }
 
-      if (safeTilesLeft === 0) {
-        const session = await mongoose.startSession();
-        session.startTransaction();
+      const isMine = game.minePositions.includes(position);
 
-        try {
-          game.status = "won";
-          game.winAmount = currentValue;
-          game.cashoutMultiplier = currentMultiplier;
-          game.finishedAt = new Date();
-          await game.save({ session });
+      if (isMine) {
+        await MinesGame.findByIdAndUpdate(
+          gameId,
+          {
+            $set: {
+              status: "lost",
+              finishedAt: new Date(),
+            },
+          },
+          { session }
+        );
 
-          user.balance += currentValue;
-          user.totalWon += currentValue;
-          await user.save({ session });
+        await session.commitTransaction();
+
+        const isWin = false;
+        const netWin = -game.betAmount;
+        leaderboardService
+          .updateStats(user._id, game.betAmount, netWin, isWin)
+          .catch((err) => {
+            console.error("Leaderboard update failed", {
+              userId: user._id.toString(),
+              error: err,
+            });
+          });
+
+        auditService
+          .log({
+            userId: user._id,
+            action: "REVEAL",
+            entityType: "MinesGame",
+            entityId: gameId,
+            oldValue: {
+              status: "active",
+              revealedPositions: game.revealedPositions.filter(
+                (p) => p !== position
+              ),
+            },
+            newValue: {
+              status: "lost",
+              revealedPositions: game.revealedPositions,
+              position,
+              isMine: true,
+            },
+            ipAddress,
+            userAgent,
+          })
+          .catch((err) => {
+            console.error("Audit log failed:", err);
+          });
+
+        return {
+          position,
+          isMine: true,
+          currentMultiplier: 0,
+          currentValue: 0,
+          revealedTiles: game.revealedPositions,
+          safeTilesLeft: 0,
+          minePositions: game.minePositions,
+        };
+      } else {
+        const safeTilesTotal = 25 - game.minesCount;
+        const safeTilesLeft = safeTilesTotal - game.revealedPositions.length;
+
+        const currentMultiplier = calculateMultiplier(
+          game.minesCount,
+          game.revealedPositions.length
+        );
+
+        const currentValue =
+          Math.floor(game.betAmount * currentMultiplier * 100) / 100;
+
+        if (safeTilesLeft === 0) {
+          await MinesGame.findByIdAndUpdate(
+            gameId,
+            {
+              $set: {
+                status: "won",
+                winAmount: currentValue,
+                cashoutMultiplier: currentMultiplier,
+                finishedAt: new Date(),
+              },
+            },
+            { session }
+          );
+
+          await mongoose
+            .model("User")
+            .findByIdAndUpdate(
+              user._id,
+              {
+                $inc: {
+                  balance: currentValue,
+                  totalWon: currentValue,
+                },
+              },
+              { session }
+            );
 
           await session.commitTransaction();
 
@@ -195,6 +321,33 @@ class MinesService {
               });
             });
 
+          auditService
+            .log({
+              userId: user._id,
+              action: "REVEAL",
+              entityType: "MinesGame",
+              entityId: gameId,
+              oldValue: {
+                status: "active",
+                revealedPositions: game.revealedPositions.filter(
+                  (p) => p !== position
+                ),
+              },
+              newValue: {
+                status: "won",
+                revealedPositions: game.revealedPositions,
+                position,
+                isMine: false,
+                winAmount: currentValue,
+                multiplier: currentMultiplier,
+              },
+              ipAddress,
+              userAgent,
+            })
+            .catch((err) => {
+              console.error("Audit log failed:", err);
+            });
+
           return {
             position,
             isMine: false,
@@ -205,65 +358,118 @@ class MinesService {
             status: "won",
             winAmount: currentValue,
           };
-        } catch (error) {
-          await session.abortTransaction();
-          throw error;
-        } finally {
-          session.endSession();
         }
+
+        await session.commitTransaction();
+
+        auditService
+          .log({
+            userId: user._id,
+            action: "REVEAL",
+            entityType: "MinesGame",
+            entityId: gameId,
+            oldValue: {
+              revealedPositions: game.revealedPositions.filter(
+                (p) => p !== position
+              ),
+            },
+            newValue: {
+              revealedPositions: game.revealedPositions,
+              position,
+              isMine: false,
+              currentMultiplier,
+              currentValue,
+            },
+            ipAddress,
+            userAgent,
+          })
+          .catch((err) => {
+            console.error("Audit log failed:", err);
+          });
+
+        return {
+          position,
+          isMine: false,
+          currentMultiplier,
+          currentValue,
+          revealedTiles: game.revealedPositions,
+          safeTilesLeft,
+        };
       }
-
-      await game.save();
-
-      return {
-        position,
-        isMine: false,
-        currentMultiplier,
-        currentValue,
-        revealedTiles: game.revealedPositions,
-        safeTilesLeft,
-      };
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
     }
   }
 
-  async cashoutMine(user: HydratedDocument<IUser>, gameId: string) {
-    const game = await MinesGame.findOne({
-      _id: gameId,
-      userId: user._id,
-    });
-
-    if (!game) {
-      throw HttpError(404, "Game not found");
-    }
-
-    if (game.status !== "active") {
-      throw HttpError(400, "Game is not active");
-    }
-
-    if (game.revealedPositions.length === 0) {
-      throw HttpError(400, "Cannot cashout without revealing any tiles");
-    }
-
-    const currentMultiplier = calculateMultiplier(
-      game.minesCount,
-      game.revealedPositions.length
-    );
-    const winAmount =
-      Math.floor(game.betAmount * currentMultiplier * 100) / 100;
-
+  async cashoutMine(
+    user: HydratedDocument<IUser>,
+    gameId: string,
+    ipAddress?: string,
+    userAgent?: string
+  ) {
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-      game.status = "won";
-      game.winAmount = winAmount;
-      game.cashoutMultiplier = currentMultiplier;
-      game.finishedAt = new Date();
-      await game.save({ session });
+      const game = await MinesGame.findOneAndUpdate(
+        {
+          _id: gameId,
+          userId: user._id,
+          status: "active",
+        },
+        {
+          $set: {
+            status: "cashed_out",
+            finishedAt: new Date(),
+          },
+        },
+        {
+          session,
+          new: true,
+        }
+      );
 
-      user.balance += winAmount;
-      user.totalWon += winAmount;
-      await user.save({ session });
+      if (!game) {
+        throw HttpError(404, "Game not found or not active");
+      }
+
+      if (game.revealedPositions.length === 0) {
+        throw HttpError(400, "Cannot cashout without revealing any tiles");
+      }
+
+      const currentMultiplier = calculateMultiplier(
+        game.minesCount,
+        game.revealedPositions.length
+      );
+      const winAmount =
+        Math.floor(game.betAmount * currentMultiplier * 100) / 100;
+
+      await MinesGame.findByIdAndUpdate(
+        gameId,
+        {
+          $set: {
+            winAmount: winAmount,
+            cashoutMultiplier: currentMultiplier,
+          },
+        },
+        { session }
+      );
+
+      await mongoose
+        .model("User")
+        .findByIdAndUpdate(
+          user._id,
+          {
+            $inc: {
+              balance: winAmount,
+              totalWon: winAmount,
+            },
+          },
+          { session }
+        );
 
       await session.commitTransaction();
 
@@ -276,6 +482,30 @@ class MinesService {
             userId: user._id.toString(),
             error: err,
           });
+        });
+
+      auditService
+        .log({
+          userId: user._id,
+          action: "CASHOUT",
+          entityType: "MinesGame",
+          entityId: gameId,
+          oldValue: {
+            status: "active",
+            balance: user.balance - winAmount,
+            totalWon: user.totalWon - winAmount,
+          },
+          newValue: {
+            status: "cashed_out",
+            winAmount,
+            multiplier: currentMultiplier,
+            revealedPositions: game.revealedPositions,
+          },
+          ipAddress,
+          userAgent,
+        })
+        .catch((err) => {
+          console.error("Audit log failed:", err);
         });
 
       return {

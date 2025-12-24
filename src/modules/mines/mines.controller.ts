@@ -17,7 +17,9 @@ const startMine = async (req: AuthBodyRequest<StartMineDTO>, res: Response) => {
     user,
     amount,
     minesCount,
-    clientSeed
+    clientSeed,
+    req.ip,
+    req.userAgent
   );
   res.status(201).json(result);
 };
@@ -29,7 +31,13 @@ const revealMine = async (
   const { gameId, position } = req.body;
   const user = req.user;
 
-  const result = await minesService.revealMine(user, gameId, position);
+  const result = await minesService.revealMine(
+    user,
+    gameId,
+    position,
+    req.ip,
+    req.userAgent
+  );
   res.json(result);
 };
 
@@ -40,7 +48,12 @@ const cashoutMine = async (
   const { gameId } = req.body;
   const user = req.user;
 
-  const result = await minesService.cashoutMine(user, gameId);
+  const result = await minesService.cashoutMine(
+    user,
+    gameId,
+    req.ip,
+    req.userAgent
+  );
   res.json(result);
 };
 

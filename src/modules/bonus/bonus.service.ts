@@ -4,6 +4,7 @@ import { BonusStatusResponse, ClaimBonusResponse } from "./bonus.types";
 import { HttpError } from "../../helpers/index";
 import { BonusClaim } from "./models/bonus-claims/bonus-claims.model";
 import { BonusSetting } from "./models/bonus-settings/bonus-settings.model";
+import auditService from "../audit/audit.service";
 
 class BonusService {
   private async getSettings() {
@@ -62,7 +63,11 @@ class BonusService {
     };
   }
 
-  async claimBonus(user: HydratedDocument<IUser>): Promise<ClaimBonusResponse> {
+  async claimBonus(
+    user: HydratedDocument<IUser>,
+    ipAddress?: string,
+    userAgent?: string
+  ): Promise<ClaimBonusResponse> {
     const settings = await this.getSettings();
     const now = new Date();
 
@@ -84,10 +89,11 @@ class BonusService {
     const fixedAmount = 10;
     const amount = fixedAmount;
 
+    const oldBalance = user.balance;
     user.balance += amount;
     await user.save();
 
-    await BonusClaim.create({
+    const claim = await BonusClaim.create({
       userId: user._id,
       amount,
       claimedAt: now,
@@ -97,6 +103,27 @@ class BonusService {
       user._id,
       settings.cooldownSeconds
     );
+
+    auditService
+      .log({
+        userId: user._id,
+        action: "CLAIM_BONUS",
+        entityType: "BonusClaim",
+        entityId: claim._id,
+        oldValue: {
+          balance: oldBalance,
+        },
+        newValue: {
+          balance: user.balance,
+          amount,
+          nextClaimAt: nextClaimAt.toISOString(),
+        },
+        ipAddress,
+        userAgent,
+      })
+      .catch((err) => {
+        console.error("Audit log failed:", err);
+      });
 
     return {
       amount,

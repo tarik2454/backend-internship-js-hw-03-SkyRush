@@ -814,6 +814,121 @@ Authorization: Bearer <token>
 
 ---
 
+### Аудит (Audit)
+
+Базовый путь: `/audit`
+
+Модуль для просмотра логов аудита всех действий пользователей в системе. Все эндпоинты требуют авторизации.
+
+#### Получить логи аудита
+
+**GET** `/audit`
+
+Возвращает логи аудита с возможностью фильтрации по пользователю и типу сущности.
+
+**Заголовки:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Query параметры:**
+
+- `userId` - ID пользователя для фильтрации (опционально, MongoDB ObjectId)
+- `entityType` - Тип сущности для фильтрации (опционально)
+  - `User` - Действия с пользователями
+  - `MinesGame` - Действия в игре Mines
+  - `PlinkoDrop` - Действия в игре Plinko
+  - `CaseOpening` - Открытия кейсов
+  - `BonusClaim` - Получения бонусов
+  - `LeaderboardStats` - Статистика лидерборда
+- `limit` - Максимальное количество записей (опционально, по умолчанию: 100, максимум: 100)
+- `offset` - Смещение для пагинации (опционально, по умолчанию: 0)
+
+**Тело запроса:** отсутствует
+
+**Пример запроса:**
+
+```
+GET /api/audit?userId=65a1b2c3d4e5f6g7h8i9j0k1&entityType=MinesGame&limit=50&offset=0
+```
+
+**Успешный ответ (200):**
+
+```json
+{
+  "logs": [
+    {
+      "_id": "65a1b2c3d4e5f6g7h8i9j0a1",
+      "userId": {
+        "_id": "65a1b2c3d4e5f6g7h8i9j0k1",
+        "username": "john_doe",
+        "email": "john@example.com"
+      },
+      "action": "BET",
+      "entityType": "MinesGame",
+      "entityId": "65b1c2d3e4f5g6h7i8j9k0l1",
+      "oldValue": {
+        "balance": 1000,
+        "totalWagered": 500,
+        "gamesPlayed": 10
+      },
+      "newValue": {
+        "balance": 990,
+        "totalWagered": 510,
+        "gamesPlayed": 11,
+        "gameId": "65b1c2d3e4f5g6h7i8j9k0l1",
+        "betAmount": 10,
+        "minesCount": 3
+      },
+      "ipAddress": "192.168.1.1",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      "createdAt": "2024-01-15T12:00:00.000Z"
+    }
+  ],
+  "total": 150,
+  "limit": 50,
+  "offset": 0
+}
+```
+
+**Поля ответа:**
+
+- `logs` - Массив логов аудита
+  - `userId` - Информация о пользователе (populated)
+  - `action` - Тип действия:
+    - `CREATE`, `UPDATE`, `DELETE` - Общие действия
+    - `BET` - Ставки в играх
+    - `CASHOUT` - Завершение игры с выводом выигрыша
+    - `REVEAL` - Открытие ячейки в Mines
+    - `OPEN_CASE` - Открытие кейса
+    - `CLAIM_BONUS` - Получение бонуса
+    - `LOGIN`, `LOGOUT`, `REGISTER` - Действия аутентификации
+  - `entityType` - Тип сущности, с которой было выполнено действие
+  - `entityId` - ID сущности
+  - `oldValue` - Значения до изменения (опционально)
+  - `newValue` - Значения после изменения (опционально)
+  - `ipAddress` - IP-адрес пользователя
+  - `userAgent` - User-Agent браузера/клиента
+  - `createdAt` - Время создания записи
+- `total` - Общее количество записей, соответствующих фильтрам
+- `limit` - Использованный лимит
+- `offset` - Использованное смещение
+
+**Ошибки:**
+
+- `401` - Не авторизован
+- `400` - Неверные параметры запроса
+
+**Примечание:** Система аудита автоматически логирует все критические действия:
+- Ставки и игры (Mines, Plinko, Cases)
+- Получения бонусов
+- Действия аутентификации (логин, логаут, регистрация)
+
+Все логи содержат информацию о старых и новых значениях, IP-адресе и User-Agent для обеспечения безопасности и отслеживания действий пользователей.
+
+---
+
 ### Пользователи
 
 Базовый путь: `/users`
@@ -971,6 +1086,7 @@ Authorization: Bearer <your_jwt_token>
 - Все эндпоинты `/api/plinko/*`
 - Все эндпоинты `/api/bonus/*`
 - Все эндпоинты `/api/leaderboard/*`
+- Все эндпоинты `/api/audit/*`
 - `POST /api/auth/logout` - Выход из системы
 
 ---
@@ -1003,6 +1119,7 @@ API использует систему ограничения частоты з
      - `GET /api/plinko/multipliers`, `GET /api/plinko/history`, `GET /api/plinko/recent`
      - `GET /api/bonus/status`, `POST /api/bonus/claim`
      - `GET /api/leaderboard`
+     - `GET /api/audit`
      - `GET /api/users/*`
 
 5. **Auth Limiters** - для аутентификации
@@ -1169,7 +1286,15 @@ src/
 │           └── leaderboard-stats/
 │               ├── leaderboard-stats.model.ts
 │               └── leaderboard-stats.types.ts
+│   └── audit/        # Модуль аудита
+│       ├── audit.controller.ts
+│       ├── audit.router.ts
+│       ├── audit.service.ts
+│       └── models/
+│           ├── audit-log.model.ts
+│           └── audit-log.types.ts
 ├── middlewares/      # Промежуточное ПО (общее для всех модулей)
+│   ├── collectRequestInfo.ts
 │   ├── authenticate.ts
 │   ├── isValidId.ts
 │   └── rateLimiters.ts

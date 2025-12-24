@@ -2,6 +2,7 @@ import express from "express";
 import casesController from "./cases.controller";
 import {
   authenticate,
+  collectRequestInfo,
   isValidId,
   caseOpeningLimiter,
   generalLimiter,
@@ -24,6 +25,7 @@ caseRouter.get(
 caseRouter.post(
   "/:id/open",
   authenticate,
+  collectRequestInfo,
   isValidId,
   caseOpeningLimiter,
   validateBody(openCaseSchema),

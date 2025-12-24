@@ -2,7 +2,7 @@ import express from "express";
 import authController from "./auth.controller";
 import { validateBody } from "../../decorators/index";
 import { userSignupSchema, userSigninSchema } from "../users/users.schema";
-import { authenticate } from "../../middlewares/index";
+import { authenticate, collectRequestInfo } from "../../middlewares/index";
 
 const authRouter = express.Router();
 
@@ -18,6 +18,11 @@ authRouter.post(
   authController.signin
 );
 
-authRouter.post("/logout", authenticate, authController.signout);
+authRouter.post(
+  "/logout",
+  authenticate,
+  collectRequestInfo,
+  authController.signout
+);
 
 export { authRouter };

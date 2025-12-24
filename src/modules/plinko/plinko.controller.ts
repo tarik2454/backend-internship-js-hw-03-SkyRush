@@ -11,7 +11,9 @@ import {
 const dropPlinko = async (req: AuthenticatedRequest, res: Response) => {
   const result = await plinkoService.processDrop(
     req.user._id,
-    req.body as DropPlinkoDTO
+    req.body as DropPlinkoDTO,
+    req.ip,
+    req.userAgent
   );
   res.json(result);
 };
@@ -42,8 +44,8 @@ const getRecent = async (_req: AuthenticatedRequest, res: Response) => {
 };
 
 export default {
-  dropPlinko: ctrlWrapper(dropPlinko),
-  getMultipliers: ctrlWrapper(getMultipliers),
-  getHistory: ctrlWrapper(getHistory),
-  getRecent: ctrlWrapper(getRecent),
+  dropPlinko: ctrlWrapper<AuthenticatedRequest>(dropPlinko),
+  getMultipliers: ctrlWrapper<AuthenticatedRequest>(getMultipliers),
+  getHistory: ctrlWrapper<AuthenticatedRequest>(getHistory),
+  getRecent: ctrlWrapper<AuthenticatedRequest>(getRecent),
 };

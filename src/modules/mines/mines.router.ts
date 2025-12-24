@@ -2,6 +2,7 @@ import express from "express";
 import minesController from "./mines.controller";
 import {
   authenticate,
+  collectRequestInfo,
   betsLimiter,
   minesRevealLimiter,
   generalLimiter,
@@ -19,6 +20,7 @@ const minesRouter = express.Router();
 minesRouter.post(
   "/start",
   authenticate,
+  collectRequestInfo,
   betsLimiter,
   validateBody(startMineSchema),
   minesController.startMine
@@ -27,6 +29,7 @@ minesRouter.post(
 minesRouter.post(
   "/reveal",
   authenticate,
+  collectRequestInfo,
   minesRevealLimiter,
   validateBody(revealMineSchema),
   minesController.revealMine
@@ -35,6 +38,7 @@ minesRouter.post(
 minesRouter.post(
   "/cashout",
   authenticate,
+  collectRequestInfo,
   generalLimiter,
   validateBody(cashoutMineSchema),
   minesController.cashoutMine

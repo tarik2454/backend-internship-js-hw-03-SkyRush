@@ -1,5 +1,10 @@
 import express from "express";
-import { authenticate, betsLimiter, generalLimiter } from "../../middlewares";
+import {
+  authenticate,
+  collectRequestInfo,
+  betsLimiter,
+  generalLimiter,
+} from "../../middlewares";
 import { validateBody, validateQuery } from "../../decorators";
 import plinkoController from "./plinko.controller";
 import {
@@ -13,6 +18,7 @@ const plinkoRouter = express.Router();
 plinkoRouter.post(
   "/drop",
   authenticate,
+  collectRequestInfo,
   betsLimiter,
   validateBody(dropPlinkoSchema),
   plinkoController.dropPlinko
