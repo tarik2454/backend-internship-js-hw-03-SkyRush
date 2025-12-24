@@ -183,6 +183,14 @@ document.addEventListener("DOMContentLoaded", () => {
           totalWin: data.totalWin || 0,
           totalBet: data.totalBet || totalBet,
           ballsCount: balls,
+          historyData: {
+            bet: bet,
+            balls: balls,
+            lines: lines,
+            risk: risk,
+            multiplier: (data.totalWin / data.totalBet).toFixed(2),
+            winAmount: data.totalWin,
+          },
         };
 
         if (data.drops && data.drops.length > 0) {
@@ -206,15 +214,6 @@ document.addEventListener("DOMContentLoaded", () => {
           applyBalanceUpdate();
           playBtn.disabled = false;
         }
-
-        addToHistory({
-          bet: bet,
-          balls: balls,
-          lines: lines,
-          risk: risk,
-          multiplier: (data.totalWin / data.totalBet).toFixed(2),
-          winAmount: data.totalWin,
-        });
       } catch (error) {
         alert(error.message);
         if (playBtn) playBtn.disabled = false;
@@ -330,7 +329,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const { newBalance } = pendingBalanceUpdate;
+    const { newBalance, historyData } = pendingBalanceUpdate;
 
     if (newBalance !== undefined) {
       window.currentUser.balance = newBalance;
@@ -345,6 +344,10 @@ document.addEventListener("DOMContentLoaded", () => {
           bubbles: true,
         })
       );
+    }
+
+    if (historyData) {
+      addToHistory(historyData);
     }
 
     pendingBalanceUpdate = null;

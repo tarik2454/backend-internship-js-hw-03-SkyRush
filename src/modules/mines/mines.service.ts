@@ -302,8 +302,11 @@ class MinesService {
   }
 
   async getHistory(user: HydratedDocument<IUser>, limit = 10, offset = 0) {
-    const games = await MinesGame.find({ userId: user._id })
-      .sort({ createdAt: -1 })
+    const games = await MinesGame.find({
+      userId: user._id,
+      status: { $in: ["won", "lost"] },
+    })
+      .sort({ finishedAt: -1, createdAt: -1 })
       .skip(offset)
       .limit(limit);
 

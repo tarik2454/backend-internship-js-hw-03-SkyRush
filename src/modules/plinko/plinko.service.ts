@@ -210,6 +210,10 @@ export class PlinkoService {
 
       if (dropsResults.length > 0) {
         await PlinkoResult.insertMany(dropsResults, { session });
+        const dropDoc = drop[0];
+        dropDoc.completed = true;
+        dropDoc.completedAt = new Date();
+        await dropDoc.save({ session });
       }
 
       await session.commitTransaction();
@@ -249,8 +253,13 @@ export class PlinkoService {
   }
 
   static async getHistory(userId: string, limit = 10, offset = 0) {
-    const drops = await PlinkoDrop.find({ userId })
-      .sort({ createdAt: -1 })
+    const minCompletedAt = new Date(Date.now() - 10000);
+    const drops = await PlinkoDrop.find({
+      userId,
+      completed: true,
+      completedAt: { $lt: minCompletedAt },
+    })
+      .sort({ completedAt: -1, createdAt: -1 })
       .skip(offset)
       .limit(limit);
 

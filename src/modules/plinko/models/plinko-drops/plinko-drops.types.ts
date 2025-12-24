@@ -6,6 +6,8 @@ export interface IPlinkoDrop extends Document {
   ballsCount: number;
   riskLevel: "low" | "medium" | "high";
   linesCount: number;
+  completed: boolean;
+  completedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
