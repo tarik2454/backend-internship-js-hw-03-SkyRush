@@ -38,22 +38,8 @@ export const getMultipliersSchema = z.object({
 });
 
 export const getHistorySchema = z.object({
-  limit: z.preprocess(
-    (a) => {
-      if (a === undefined || a === null || a === "") return undefined;
-      const parsed = parseInt(String(a), 10);
-      return isNaN(parsed) ? undefined : parsed;
-    },
-    z.number().int().min(1).max(10).optional().default(10)
-  ),
-  offset: z.preprocess(
-    (a) => {
-      if (a === undefined || a === null || a === "") return undefined;
-      const parsed = parseInt(String(a), 10);
-      return isNaN(parsed) ? undefined : parsed;
-    },
-    z.number().int().min(0).optional().default(0)
-  ),
+  limit: z.coerce.number().int().min(1).max(10).optional().default(10),
+  offset: z.coerce.number().int().min(0).optional().default(0),
 });
 
 export type DropPlinkoDTO = z.infer<typeof dropPlinkoSchema>;
