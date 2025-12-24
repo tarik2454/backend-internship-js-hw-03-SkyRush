@@ -1,5 +1,34 @@
 import swaggerJsdoc from "swagger-jsdoc";
 
+const getServerUrl = () => {
+  if (process.env.BASE_URL) {
+    return process.env.BASE_URL;
+  }
+  
+  const port = process.env.PORT || 3000;
+  const host = process.env.HOST || "localhost";
+  const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
+  
+  return `${protocol}://${host}:${port}/api`;
+};
+
+const servers = [
+  {
+    url: getServerUrl(),
+    description:
+      process.env.NODE_ENV === "production"
+        ? "Production server"
+        : "Development server",
+  },
+];
+
+if (process.env.NODE_ENV === "production" && process.env.BASE_URL) {
+  servers.push({
+    url: "http://localhost:3000/api",
+    description: "Local development server",
+  });
+}
+
 const swaggerDefinition = {
   openapi: "3.0.0",
   info: {
@@ -10,12 +39,7 @@ const swaggerDefinition = {
       name: "API Support",
     },
   },
-  servers: [
-    {
-      url: "http://localhost:3000/api",
-      description: "Development server",
-    },
-  ],
+  servers,
   components: {
     securitySchemes: {
       bearerAuth: {
