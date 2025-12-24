@@ -164,31 +164,10 @@ async function loadAuditLogs() {
   }
 }
 
-function openAuditModal() {
-  const modal = document.getElementById("audit-modal");
-  if (!modal) return;
-
-  modal.classList.remove("hidden");
-  loadAuditLogs();
-}
-
-function closeAuditModal() {
-  const modal = document.getElementById("audit-modal");
-  if (modal) {
-    modal.classList.add("hidden");
-  }
-}
-
 document.addEventListener("DOMContentLoaded", () => {
-  const modal = document.getElementById("audit-modal");
-  const closeBtn = document.getElementById("audit-modal-close");
   const refreshBtn = document.getElementById("audit-refresh-btn");
   const filterType = document.getElementById("audit-filter-type");
   const filterLimit = document.getElementById("audit-filter-limit");
-
-  if (closeBtn) {
-    closeBtn.addEventListener("click", closeAuditModal);
-  }
 
   if (refreshBtn) {
     refreshBtn.addEventListener("click", () => {
@@ -217,21 +196,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  if (modal) {
-    modal.addEventListener("click", (e) => {
-      if (e.target === modal) {
-        closeAuditModal();
-      }
-    });
-  }
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && modal && !modal.classList.contains("hidden")) {
-      closeAuditModal();
-    }
+  document.addEventListener("audit:shown", () => {
+    loadAuditLogs();
   });
 });
-
-window.openAuditModal = openAuditModal;
-window.closeAuditModal = closeAuditModal;
 

@@ -18,6 +18,10 @@ function getBonusElements() {
     bonusClaimBtn: document.getElementById("bonus-claim-btn"),
     bonusTimerEl: document.getElementById("bonus-timer"),
     bonusAmountEl: document.getElementById("bonus-amount"),
+    bonusBaseAmountEl: document.getElementById("bonus-base-amount"),
+    bonusWagerBonusEl: document.getElementById("bonus-wager-bonus"),
+    bonusGamesBonusEl: document.getElementById("bonus-games-bonus"),
+    bonusNextClaimAtEl: document.getElementById("bonus-next-claim-at"),
   };
 }
 
@@ -39,10 +43,33 @@ async function loadBonusStatus(shouldLog = false) {
 
     bonusStatus = await res.json();
     updateTimer();
+    updateBonusStatusDisplay();
     if (shouldLog) {
       console.log("BonusStatusResponse:", bonusStatus);
     }
   } catch (err) {
+  }
+}
+
+function updateBonusStatusDisplay() {
+  const { bonusAmountEl, bonusBaseAmountEl, bonusWagerBonusEl, bonusGamesBonusEl, bonusNextClaimAtEl } = getBonusElements();
+  if (!bonusStatus) return;
+
+  if (bonusAmountEl) {
+    bonusAmountEl.textContent = `$${bonusStatus.amount?.toFixed(2) || "0.00"}`;
+  }
+  if (bonusBaseAmountEl) {
+    bonusBaseAmountEl.textContent = `$${bonusStatus.baseAmount?.toFixed(2) || "0.00"}`;
+  }
+  if (bonusWagerBonusEl) {
+    bonusWagerBonusEl.textContent = `$${bonusStatus.wagerBonus?.toFixed(2) || "0.00"}`;
+  }
+  if (bonusGamesBonusEl) {
+    bonusGamesBonusEl.textContent = `$${bonusStatus.gamesBonus?.toFixed(2) || "0.00"}`;
+  }
+  if (bonusNextClaimAtEl && bonusStatus.nextClaimAt) {
+    const nextClaimDate = new Date(bonusStatus.nextClaimAt);
+    bonusNextClaimAtEl.textContent = nextClaimDate.toLocaleString();
   }
 }
 
@@ -142,6 +169,11 @@ const claimBonus = async function() {
           bubbles: true,
         })
       );
+    }
+
+    if (data.nextClaimAt && bonusStatus) {
+      bonusStatus.nextClaimAt = data.nextClaimAt;
+      updateBonusStatusDisplay();
     }
 
     startCountdown(60);

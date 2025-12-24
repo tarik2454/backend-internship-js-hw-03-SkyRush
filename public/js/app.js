@@ -39,10 +39,12 @@ const tabCases = document.getElementById("tab-cases");
 const tabMines = document.getElementById("tab-mines");
 const tabBonus = document.getElementById("tab-bonus");
 const tabLeaderboard = document.getElementById("tab-leaderboard");
+const tabAudit = document.getElementById("tab-audit");
 const casesView = document.getElementById("cases-view");
 const minesView = document.getElementById("mines-view");
 const bonusView = document.getElementById("bonus-view");
 const leaderboardView = document.getElementById("leaderboard-view");
+const auditView = document.getElementById("audit-view");
 
 const minesAmountInput = document.getElementById("mines-amount");
 const minesCountInput = document.getElementById("mines-count");
@@ -185,6 +187,12 @@ function switchTab(tab) {
     document.dispatchEvent(new CustomEvent("leaderboard:hidden"));
   }
 
+  if (tabAudit) {
+    tabAudit.classList.remove("active");
+    tabAudit.classList.add("secondary");
+    auditView.classList.add("hidden");
+  }
+
   if (tab === "cases") {
     tabCases.classList.add("active");
     tabCases.classList.remove("secondary");
@@ -220,6 +228,13 @@ function switchTab(tab) {
       leaderboardView.classList.remove("hidden");
       document.dispatchEvent(new CustomEvent("leaderboard:shown"));
     }
+  } else if (tab === "audit") {
+    if (tabAudit) {
+      tabAudit.classList.add("active");
+      tabAudit.classList.remove("secondary");
+      auditView.classList.remove("hidden");
+      document.dispatchEvent(new CustomEvent("audit:shown"));
+    }
   }
 }
 
@@ -228,6 +243,7 @@ tabMines.addEventListener("click", () => switchTab("mines"));
 if (tabPlinko) tabPlinko.addEventListener("click", () => switchTab("plinko"));
 if (tabBonus) tabBonus.addEventListener("click", () => switchTab("bonus"));
 if (tabLeaderboard) tabLeaderboard.addEventListener("click", () => switchTab("leaderboard"));
+if (tabAudit) tabAudit.addEventListener("click", () => switchTab("audit"));
 
 async function loadCases() {
   try {
@@ -576,21 +592,11 @@ function renderUser() {
       )}</h2>
       <p style="color: var(--text-dim);">${escapeHtml(currentUser.email)}</p>
     </div>
-    <div style="display: flex; gap: 1rem; align-items: center;">
-      <button 
-        id="audit-logs-btn" 
-        class="secondary" 
-        style="font-size: 0.875rem; padding: 0.5rem 1rem;"
-        onclick="if(typeof openAuditModal === 'function') openAuditModal();"
-      >
-        📋 Audit Logs
-      </button>
-      <div style="text-align: right;">
-        <div style="font-size: 1.5rem; color: var(--accent-success); font-weight: 700;">$${currentUser.balance.toFixed(
-          2
-        )}</div>
-        <div style="font-size: 0.875rem; color: var(--text-dim);">Balance</div>
-      </div>
+    <div style="text-align: right;">
+      <div style="font-size: 1.5rem; color: var(--accent-success); font-weight: 700;">$${currentUser.balance.toFixed(
+        2
+      )}</div>
+      <div style="font-size: 0.875rem; color: var(--text-dim);">Balance</div>
     </div>
   `;
 }

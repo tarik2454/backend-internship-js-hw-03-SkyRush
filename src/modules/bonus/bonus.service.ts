@@ -43,11 +43,10 @@ class BonusService {
   async getStatus(user: HydratedDocument<IUser>): Promise<BonusStatusResponse> {
     const settings = await this.getSettings();
 
-    const fixedAmount = 10;
-    const baseAmount = fixedAmount;
-    const wagerBonus = 0;
-    const gamesBonus = 0;
-    const amount = fixedAmount;
+    const baseAmount = settings.baseAmount;
+    const wagerBonus = Math.floor((user.totalWagered || 0) * settings.wagerBonusRate * 100) / 100;
+    const gamesBonus = Math.floor((user.gamesPlayed || 0) * settings.gamesBonusAmount * 100) / 100;
+    const amount = baseAmount + wagerBonus + gamesBonus;
 
     const nextClaimAt = await this.getNextClaimAt(
       user._id,
@@ -86,8 +85,10 @@ class BonusService {
       }
     }
 
-    const fixedAmount = 10;
-    const amount = fixedAmount;
+    const baseAmount = settings.baseAmount;
+    const wagerBonus = Math.floor((user.totalWagered || 0) * settings.wagerBonusRate * 100) / 100;
+    const gamesBonus = Math.floor((user.gamesPlayed || 0) * settings.gamesBonusAmount * 100) / 100;
+    const amount = baseAmount + wagerBonus + gamesBonus;
 
     const oldBalance = user.balance;
     user.balance += amount;
