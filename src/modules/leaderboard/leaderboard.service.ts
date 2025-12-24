@@ -1,6 +1,10 @@
 import { Types } from "mongoose";
 import { LeaderboardStats } from "./models/leaderboard-stats.model";
-import { PeriodType, LeaderboardResponse, LeaderboardPlayer } from "./leaderboard.types";
+import {
+  PeriodType,
+  LeaderboardResponse,
+  LeaderboardPlayer,
+} from "./leaderboard.types";
 
 class LeaderboardService {
   private getPeriodStart(periodType: PeriodType): Date {
@@ -11,12 +15,13 @@ class LeaderboardService {
       case "daily":
         periodStart.setHours(0, 0, 0, 0);
         break;
-      case "weekly":
+      case "weekly": {
         const dayOfWeek = now.getDay();
         const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
         periodStart.setDate(diff);
         periodStart.setHours(0, 0, 0, 0);
         break;
+      }
       case "monthly":
         periodStart.setDate(1);
         periodStart.setHours(0, 0, 0, 0);
@@ -74,21 +79,26 @@ class LeaderboardService {
       .limit(100)
       .lean();
 
-    const players: LeaderboardPlayer[] = stats.map((stat, index) => {
-      const user = stat.userId as unknown as { _id: Types.ObjectId; username: string };
-      const winRate =
-        stat.gamesPlayed > 0
-          ? Math.round((stat.gamesWon / stat.gamesPlayed) * 100 * 100) / 100
-          : 0;
+    const players: LeaderboardPlayer[] = stats
+      .filter((stat) => stat.userId !== null && stat.userId !== undefined)
+      .map((stat, index) => {
+        const user = stat.userId as unknown as {
+          _id: Types.ObjectId;
+          username: string;
+        };
+        const winRate =
+          stat.gamesPlayed > 0
+            ? Math.round((stat.gamesWon / stat.gamesPlayed) * 100 * 100) / 100
+            : 0;
 
-      return {
-        rank: index + 1,
-        username: user.username,
-        totalWagered: stat.totalWagered,
-        gamesPlayed: stat.gamesPlayed,
-        winRate,
-      };
-    });
+        return {
+          rank: index + 1,
+          username: user.username,
+          totalWagered: stat.totalWagered,
+          gamesPlayed: stat.gamesPlayed,
+          winRate,
+        };
+      });
 
     let currentUser: LeaderboardPlayer | null = null;
 
@@ -101,7 +111,11 @@ class LeaderboardService {
         .populate("userId", "username")
         .lean();
 
-      if (currentUserStat) {
+      if (
+        currentUserStat &&
+        currentUserStat.userId !== null &&
+        currentUserStat.userId !== undefined
+      ) {
         const user = currentUserStat.userId as unknown as {
           _id: Types.ObjectId;
           username: string;
@@ -109,15 +123,20 @@ class LeaderboardService {
         const winRate =
           currentUserStat.gamesPlayed > 0
             ? Math.round(
-                (currentUserStat.gamesWon / currentUserStat.gamesPlayed) * 100 * 100
+                (currentUserStat.gamesWon / currentUserStat.gamesPlayed) *
+                  100 *
+                  100
               ) / 100
             : 0;
 
         let rank =
           stats.findIndex(
             (s) =>
-              (s.userId as unknown as { _id: Types.ObjectId })._id.toString() ===
-              currentUserId.toString()
+              s.userId !== null &&
+              s.userId !== undefined &&
+              (
+                s.userId as unknown as { _id: Types.ObjectId }
+              )._id.toString() === currentUserId.toString()
           ) + 1;
 
         if (rank === 0) {
@@ -145,4 +164,3 @@ class LeaderboardService {
 }
 
 export default new LeaderboardService();
-
