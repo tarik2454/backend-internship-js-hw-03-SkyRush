@@ -52,7 +52,9 @@ app.use("/api-docs", (req: Request, res: Response, next: NextFunction) => {
   if (
     req.path.endsWith(".js") ||
     req.path.endsWith(".css") ||
-    req.path.endsWith(".map")
+    req.path.endsWith(".map") ||
+    req.path.includes("swagger-ui") ||
+    req.path.includes("favicon")
   ) {
     res.status(404).json({ message: "Not found" });
     return;
@@ -60,8 +62,8 @@ app.use("/api-docs", (req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-app.use("/api-docs", swaggerUi.serve);
 app.get("/api-docs", swaggerUi.setup(swaggerSpec, swaggerUiOptions));
+app.get("/api-docs/", swaggerUi.setup(swaggerSpec, swaggerUiOptions));
 
 app.use("/api/auth/login", loginLimiter);
 app.use("/api/auth/register", registerLimiter);
