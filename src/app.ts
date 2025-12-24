@@ -27,8 +27,13 @@ app.use(
 app.use(logger(formatsLogger));
 app.use(
   cors({
-    origin: true,
+    origin:
+      process.env.NODE_ENV === "development"
+        ? true
+        : process.env.ALLOWED_ORIGINS?.split(",") || false,
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 app.use(express.json({ limit: "10kb" }));
