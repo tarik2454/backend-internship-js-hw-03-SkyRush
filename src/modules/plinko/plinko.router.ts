@@ -2,7 +2,11 @@ import express from "express";
 import { authenticate } from "../../middlewares";
 import { validateBody, validateQuery } from "../../decorators";
 import plinkoController from "./plinko.controller";
-import { dropPlinkoSchema, getMultipliersSchema } from "./plinko.schema";
+import {
+  dropPlinkoSchema,
+  getMultipliersSchema,
+  getHistorySchema,
+} from "./plinko.schema";
 
 const plinkoRouter = express.Router();
 
@@ -20,7 +24,12 @@ plinkoRouter.get(
   plinkoController.getMultipliers
 );
 
-plinkoRouter.get("/history", authenticate, plinkoController.getHistory);
+plinkoRouter.get(
+  "/history",
+  authenticate,
+  validateQuery(getHistorySchema),
+  plinkoController.getHistory
+);
 
 plinkoRouter.get("/recent", authenticate, plinkoController.getRecent);
 

@@ -2,7 +2,12 @@ import { Response } from "express";
 import { ctrlWrapper } from "../../decorators";
 import minesService from "./mines.service";
 import { AuthBodyRequest, AuthenticatedRequest } from "../../types";
-import { StartMineDTO, RevealMineDTO, CashoutMineDTO } from "./mines.schema";
+import {
+  StartMineDTO,
+  RevealMineDTO,
+  CashoutMineDTO,
+  GetHistoryDTO,
+} from "./mines.schema";
 
 const startMine = async (req: AuthBodyRequest<StartMineDTO>, res: Response) => {
   const { amount, minesCount, clientSeed } = req.body;
@@ -45,15 +50,17 @@ const activateMine = async (req: AuthenticatedRequest, res: Response) => {
   res.json(result);
 };
 
-const historyMine = async (req: AuthenticatedRequest, res: Response) => {
+const historyMine = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
   const user = req.user;
-  const { limit = 10, offset = 0 } = req.query;
+  let { limit = 10, offset = 0 } = req.query as unknown as GetHistoryDTO;
 
-  const result = await minesService.getHistory(
-    user,
-    Number(limit),
-    Number(offset)
-  );
+  limit = Math.min(Number(limit), 10);
+  offset = Math.max(Number(offset), 0);
+
+  const result = await minesService.getHistory(user, limit, offset);
   res.json(result);
 };
 

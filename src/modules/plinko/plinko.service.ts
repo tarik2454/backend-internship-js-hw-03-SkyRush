@@ -236,7 +236,7 @@ export class PlinkoService {
     }
   }
 
-  static async getHistory(userId: string, limit = 20, offset = 0) {
+  static async getHistory(userId: string, limit = 10, offset = 0) {
     const drops = await PlinkoDrop.find({ userId })
       .sort({ createdAt: -1 })
       .skip(offset)

@@ -40,7 +40,7 @@ export const getMultipliersSchema = z.object({
 export const getHistorySchema = z.object({
   limit: z.preprocess(
     (a) => parseInt(a as string, 10),
-    z.number().int().min(1).max(50).optional().default(10)
+    z.number().int().min(1).max(10).optional().default(10)
   ),
   offset: z.preprocess(
     (a) => parseInt(a as string, 10),

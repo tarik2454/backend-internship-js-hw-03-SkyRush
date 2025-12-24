@@ -23,11 +23,15 @@ const getMultipliers = async (req: AuthenticatedRequest, res: Response) => {
 };
 
 const getHistory = async (req: AuthenticatedRequest, res: Response) => {
-  const { limit, offset } = req.query as unknown as GetHistoryDTO;
+  let { limit = 10, offset = 0 } = req.query as unknown as GetHistoryDTO;
+
+  limit = Math.min(Number(limit), 10);
+  offset = Math.max(Number(offset), 0);
+
   const result = await plinkoService.getUserHistory(
     req.user._id,
-    Number(limit || 10),
-    Number(offset || 0)
+    limit,
+    offset
   );
   res.json(result);
 };

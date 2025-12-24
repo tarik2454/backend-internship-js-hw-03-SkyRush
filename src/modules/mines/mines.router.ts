@@ -1,11 +1,12 @@
 import express from "express";
 import minesController from "./mines.controller";
 import { authenticate } from "../../middlewares";
-import { validateBody } from "../../decorators";
+import { validateBody, validateQuery } from "../../decorators";
 import {
   startMineSchema,
   revealMineSchema,
   cashoutMineSchema,
+  getHistorySchema,
 } from "./mines.schema";
 
 const minesRouter = express.Router();
@@ -33,6 +34,11 @@ minesRouter.post(
 
 minesRouter.get("/active", authenticate, minesController.activateMine);
 
-minesRouter.get("/history", authenticate, minesController.historyMine);
+minesRouter.get(
+  "/history",
+  authenticate,
+  validateQuery(getHistorySchema),
+  minesController.historyMine
+);
 
 export { minesRouter };

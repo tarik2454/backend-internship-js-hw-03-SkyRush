@@ -476,7 +476,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const token = localStorage.getItem("token");
       if (!token) return;
 
-      const response = await fetch("/api/plinko/history?limit=50", {
+      const response = await fetch("/api/plinko/history?limit=10", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
