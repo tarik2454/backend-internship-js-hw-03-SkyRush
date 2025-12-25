@@ -11,11 +11,6 @@ import { CrashGame } from "./models/crash-games/crash-games.model";
 import { CrashBet } from "./models/crash-bets/crash-bets.model";
 import { ICrashGame } from "./models/crash-games/crash-games.types";
 import auditService from "../audit/audit.service";
-import {
-  generateServerSeed,
-  hashServerSeed,
-  generateCrashPoint,
-} from "./crash.utils";
 import crashManager, { CrashState } from "./crash.manager";
 import crashWebSocketHandler from "./crash.ws.handler";
 
@@ -41,27 +36,15 @@ class CrashService {
       );
     }
 
-    // Find current game in waiting state, or create one if none exists
-    let currentGame = await CrashGame.findOne({
+    // Find current game in waiting state
+    // Note: Games are created by CrashManager, which also manages timers
+    const currentGame = await CrashGame.findOne({
       status: "waiting",
     }).sort({ createdAt: -1 });
 
     if (!currentGame) {
-      // Create a new game in waiting state
-      const serverSeed = generateServerSeed();
-      const serverSeedHash = hashServerSeed(serverSeed);
-      const clientSeed = generateServerSeed(); // Full 64-char hex string
-      const nonce = 0;
-      const crashPoint = generateCrashPoint(serverSeed, clientSeed, nonce);
-
-      currentGame = await CrashGame.create({
-        crashPoint,
-        serverSeed,
-        serverSeedHash,
-        clientSeed,
-        nonce,
-        status: "waiting",
-      });
+      // No waiting game found - CrashManager should create games
+      throw HttpError(503, "No game available. Please try again in a moment.");
     }
 
     // Explicitly check that game is in waiting state
@@ -339,7 +322,7 @@ class CrashService {
       .sort({ createdAt: -1 })
       .limit(limit)
       .skip(offset)
-      .select("_id crashPoint serverSeedHash serverSeed createdAt")
+      .select("_id crashPoint serverSeedHash serverSeed")
       .lean();
 
     return {
@@ -348,7 +331,6 @@ class CrashService {
         crashPoint: game.crashPoint,
         hash: game.serverSeedHash,
         seed: game.serverSeed,
-        createdAt: game.createdAt,
       })),
     };
   }
@@ -375,8 +357,16 @@ class CrashService {
     };
 
     const bets = await CrashBet.find(betQuery)
+      .populate("userId", "username")
       .select("_id userId amount")
       .lean();
+
+    console.log(
+      `[getCurrentCrash] Found ${bets.length} active bets for game ${currentGame._id}`
+    );
+    if (user) {
+      console.log(`[getCurrentCrash] Looking for bet for user ${user._id}`);
+    }
 
     // Get current multiplier if game is running
     let multiplier: number | undefined;
@@ -384,15 +374,31 @@ class CrashService {
       multiplier = (await this.getCurrentMultiplier(currentGame)) || undefined;
     }
 
-    const betsList = bets.map((bet) => ({
-      betId: bet._id.toString(),
-      userId:
-        bet.userId instanceof Types.ObjectId
-          ? bet.userId.toString()
-          : String(bet.userId),
-      amount: bet.amount,
-      multiplier: currentGame.status === "running" ? multiplier : undefined,
-    }));
+    const betsList = bets.map((bet) => {
+      let userIdStr: string;
+      let userName: string | undefined;
+
+      // Handle populated user object (after populate, userId can be an object with _id and username)
+      const userId = bet.userId as unknown;
+      if (userId && typeof userId === "object" && "_id" in userId) {
+        // Populated user object
+        const userObj = userId as { _id: Types.ObjectId; username?: string };
+        userIdStr = userObj._id.toString();
+        userName = userObj.username;
+      } else if (userId instanceof Types.ObjectId) {
+        userIdStr = userId.toString();
+      } else {
+        userIdStr = String(userId);
+      }
+
+      return {
+        betId: bet._id.toString(),
+        userId: userIdStr,
+        userName: userName || "Anonymous",
+        amount: bet.amount,
+        multiplier: currentGame.status === "running" ? multiplier : undefined,
+      };
+    });
 
     // Find user's bet if user is provided
     let myBet: { betId: string; amount: number } | undefined;
@@ -403,18 +409,25 @@ class CrashService {
           bet.userId instanceof Types.ObjectId
             ? bet.userId.toString()
             : typeof bet.userId === "object" &&
-                bet.userId !== null &&
-                "_id" in bet.userId
-              ? String((bet.userId as { _id: unknown })._id)
-              : String(bet.userId);
+              bet.userId !== null &&
+              "_id" in bet.userId
+            ? String((bet.userId as { _id: unknown })._id)
+            : String(bet.userId);
         return betUserIdStr === userIdStr;
       });
-      
+
       if (userBet) {
         myBet = {
           betId: userBet._id.toString(),
           amount: userBet.amount,
         };
+        console.log(
+          `[getCurrentCrash] Found user bet: ${myBet.betId}, amount: ${myBet.amount}`
+        );
+      } else {
+        console.log(
+          `[getCurrentCrash] No bet found for user ${userIdStr} in ${bets.length} bets`
+        );
       }
     }
 

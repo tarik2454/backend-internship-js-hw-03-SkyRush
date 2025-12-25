@@ -7,6 +7,7 @@ import {
   GetCrashHistoryDTO,
 } from "./crash.schema";
 import crashService from "./crash.service";
+import crashManager from "./crash.manager";
 
 const betCrash = async (req: AuthBodyRequest<BetCrashDTO>, res: Response) => {
   const { amount, autoCashout } = req.body;
@@ -39,9 +40,12 @@ const cashoutCrash = async (
 };
 
 const getCrashHistory = async (req: AuthenticatedRequest, res: Response) => {
-  const { limit = 10, offset = 0 } = req.query as unknown as GetCrashHistoryDTO;
-  const user = req.user;
+  let { limit = 10, offset = 0 } = req.query as unknown as GetCrashHistoryDTO;
 
+  limit = Math.min(Number(limit), 10);
+  offset = Math.max(Number(offset), 0);
+
+  const user = req.user;
   const result = await crashService.getCrashHistory(user, limit, offset);
   res.json(result);
 };
@@ -52,9 +56,21 @@ const getCurrentCrash = async (req: AuthenticatedRequest, res: Response) => {
   res.json(result);
 };
 
+const stopGame = async (_req: AuthenticatedRequest, res: Response) => {
+  crashManager.stop();
+  res.json({ message: "Game stopped" });
+};
+
+const startGame = async (_req: AuthenticatedRequest, res: Response) => {
+  crashManager.start();
+  res.json({ message: "Game started" });
+};
+
 export default {
   betCrash: ctrlWrapper(betCrash),
   cashoutCrash: ctrlWrapper(cashoutCrash),
   getCrashHistory: ctrlWrapper(getCrashHistory),
   getCurrentCrash: ctrlWrapper(getCurrentCrash),
+  stopGame: ctrlWrapper(stopGame),
+  startGame: ctrlWrapper(startGame),
 };

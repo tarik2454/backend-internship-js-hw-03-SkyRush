@@ -23,6 +23,7 @@ class CrashManager {
   private crashPoint = 0;
   private tickInterval: NodeJS.Timeout | null = null;
   private waitingTimeout: NodeJS.Timeout | null = null;
+  private isStopped = false; // Flag to stop the game cycle
 
   private WAITING_TIME = 10000; // 10 seconds
   private TICK_RATE = 100; // 100ms
@@ -42,7 +43,17 @@ class CrashManager {
         this.startedAt = activeGame.startedAt.getTime();
         this.resumeGame();
       } else {
-        this.startWaitingTimer();
+        // Game is in WAITING state - calculate remaining wait time
+        const gameAge = Date.now() - activeGame.createdAt.getTime();
+        const remainingTime = Math.max(0, this.WAITING_TIME - gameAge);
+
+        if (remainingTime <= 0) {
+          // Game should have started already - start it now
+          this.startGame();
+        } else {
+          // Start timer with remaining time
+          this.startWaitingTimer(remainingTime);
+        }
       }
     } else {
       await this.createNewGame();
@@ -55,6 +66,12 @@ class CrashManager {
     const clientSeed = generateServerSeed();
     const nonce = Math.floor(Math.random() * 1000000);
     const crashPoint = generateCrashPoint(serverSeed, clientSeed, nonce);
+
+    // Don't create new game if stopped
+    if (this.isStopped) {
+      console.log("Game cycle is stopped, not creating new game");
+      return;
+    }
 
     const game = await CrashGame.create({
       crashPoint,
@@ -76,9 +93,10 @@ class CrashManager {
     this.startWaitingTimer();
   }
 
-  private startWaitingTimer() {
+  private startWaitingTimer(customTime?: number) {
     if (this.waitingTimeout) clearTimeout(this.waitingTimeout);
-    this.waitingTimeout = setTimeout(() => this.startGame(), this.WAITING_TIME);
+    const waitTime = customTime ?? this.WAITING_TIME;
+    this.waitingTimeout = setTimeout(() => this.startGame(), waitTime);
   }
 
   private async startGame() {
@@ -226,7 +244,10 @@ class CrashManager {
       game.serverSeed // Use serverSeed as reveal
     );
 
-    setTimeout(() => this.createNewGame(), 3000);
+    // Only create new game if not stopped
+    if (!this.isStopped) {
+      setTimeout(() => this.createNewGame(), 3000);
+    }
   }
 
   public getState() {
@@ -236,6 +257,35 @@ class CrashManager {
       gameId: this.currentGameId,
       startedAt: this.startedAt,
     };
+  }
+
+  /**
+   * Stop the game cycle - stops timers and prevents new games from being created
+   */
+  public stop(): void {
+    console.log("Stopping Crash Manager...");
+    this.isStopped = true;
+
+    // Clear waiting timer
+    if (this.waitingTimeout) {
+      clearTimeout(this.waitingTimeout);
+      this.waitingTimeout = null;
+    }
+
+    // Clear tick interval
+    if (this.tickInterval) {
+      clearTimeout(this.tickInterval);
+      this.tickInterval = null;
+    }
+  }
+
+  /**
+   * Start the game cycle - initializes and starts the game
+   */
+  public start(): void {
+    console.log("Starting Crash Manager...");
+    this.isStopped = false;
+    this.initialize();
   }
 }
 

@@ -48,4 +48,18 @@ crashRouter.get(
   crashController.getCurrentCrash
 );
 
+crashRouter.post(
+  "/admin/stop",
+  authenticate,
+  generalLimiter,
+  crashController.stopGame
+);
+
+crashRouter.post(
+  "/admin/start",
+  authenticate,
+  generalLimiter,
+  crashController.startGame
+);
+
 export { crashRouter };

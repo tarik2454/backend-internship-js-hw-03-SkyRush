@@ -441,6 +441,34 @@
 
           <!-- Control Panel -->
           <div class="card">
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem">
+              <button
+                id="crash-admin-start"
+                class="btn secondary"
+                style="
+                  padding: 0.5rem 1rem;
+                  font-size: 0.875rem;
+                  background-color: var(--accent-success);
+                  border-color: var(--accent-success);
+                  color: white;
+                "
+              >
+                Start
+              </button>
+              <button
+                id="crash-admin-stop"
+                class="btn secondary"
+                style="
+                  padding: 0.5rem 1rem;
+                  font-size: 0.875rem;
+                  background-color: var(--accent-error, #ef4444);
+                  border-color: var(--accent-error, #ef4444);
+                  color: white;
+                "
+              >
+                Stop
+              </button>
+            </div>
             <h2 style="margin-bottom: 1rem">Crash Configuration</h2>
 
             <div style="margin-bottom: 1rem">
@@ -498,6 +526,31 @@
             >
               Cashout
             </button>
+
+            <div
+              id="crash-win-info"
+              class="hidden"
+              style="
+                margin-top: 1rem;
+                padding: 1rem;
+                background: rgba(34, 197, 94, 0.1);
+                border: 1px solid rgba(34, 197, 94, 0.3);
+                border-radius: 0.5rem;
+                text-align: center;
+              "
+            >
+              <div style="color: var(--accent-success); font-weight: 600; margin-bottom: 0.5rem;">
+                Cashout Successful!
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                <span style="color: var(--text-dim)">Multiplier:</span>
+                <span id="crash-win-multiplier" style="font-weight: 700; color: #ffd700">-</span>
+              </div>
+              <div style="display: flex; justify-content: space-between">
+                <span style="color: var(--text-dim)">Win Amount:</span>
+                <span id="crash-win-amount" style="font-weight: 700; color: var(--accent-success)">-</span>
+              </div>
+            </div>
 
             <div
               id="crash-info"
@@ -786,13 +839,5 @@
     <script src="js/audit.js"></script>
     
     <!-- Modal Dialog -->
-    <div id="crash-modal" class="crash-modal hidden">
-      <div class="crash-modal-overlay"></div>
-      <div class="crash-modal-content">
-        <h3 id="crash-modal-title">Notice</h3>
-        <p id="crash-modal-message"></p>
-        <button id="crash-modal-ok" class="btn primary" style="width: 100%; margin-top: 1rem;">OK</button>
-      </div>
-    </div>
   </body>
 </html>

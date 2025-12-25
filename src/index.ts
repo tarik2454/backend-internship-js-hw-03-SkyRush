@@ -31,8 +31,6 @@ if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
   });
 
   crashWebSocketHandler.initialize(io);
-  const crashManager = require("./modules/crash/crash.manager").default;
-  crashManager.initialize();
 
   httpServer.listen(PORT, () => {
     console.log(`Server running on port: ${PORT}`);

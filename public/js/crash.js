@@ -8,43 +8,9 @@ let currentMultiplier = 1.0;
 let currentBetAmount = 0;
 let gameState = "waiting"; // waiting, running, crashed
 let crashTimeout = null;
+let hasCashedOut = false; // Flag to track if user has cashed out in current game
+let cashedOutMultiplier = 0; // Multiplier at which user cashed out
 
-// Modal functions
-function showModal(title, message) {
-  return new Promise((resolve) => {
-    const modal = document.getElementById("crash-modal");
-    const modalTitle = document.getElementById("crash-modal-title");
-    const modalMessage = document.getElementById("crash-modal-message");
-    const modalOk = document.getElementById("crash-modal-ok");
-
-    if (!modal || !modalTitle || !modalMessage || !modalOk) {
-      // Fallback to alert if modal elements not found
-      alert(`${title}\n\n${message}`);
-      resolve();
-      return;
-    }
-
-    modalTitle.textContent = title;
-    modalMessage.textContent = message;
-    modal.classList.remove("hidden");
-
-    const handleClose = () => {
-      modal.classList.add("hidden");
-      modalOk.removeEventListener("click", handleClose);
-      modal.removeEventListener("click", handleOverlayClose);
-      resolve();
-    };
-
-    const handleOverlayClose = (e) => {
-      if (e.target === modal.querySelector(".crash-modal-overlay")) {
-        handleClose();
-      }
-    };
-
-    modalOk.addEventListener("click", handleClose);
-    modal.addEventListener("click", handleOverlayClose);
-  });
-}
 
 document.addEventListener("DOMContentLoaded", () => {
   const crashTabBtn = document.getElementById("tab-crash");
@@ -58,13 +24,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const historyTable = document.getElementById("crash-history-table");
 
   if (!crashTabBtn || !crashView) return;
-
-  // Connect WebSocket when crash tab is shown
-  document.addEventListener("crash:shown", () => {
-    connectWebSocket();
-    loadCurrentGame();
-    loadHistory();
-  });
 
   // Disconnect when hidden
   document.addEventListener("crash:hidden", () => {
@@ -120,20 +79,51 @@ document.addEventListener("DOMContentLoaded", () => {
       clearTimeout(crashTimeout);
       crashTimeout = null;
     }
+    // Only reset bet state if this is a different game
+    if (currentGameId && currentGameId !== data.gameId) {
+      console.log("New game started, resetting bet state");
+      currentBetId = null;
+      currentBetAmount = 0;
+      hasCashedOut = false; // Reset cashout flag for new game
+      cashedOutMultiplier = 0; // Reset cashed out multiplier
+    }
+    
     currentGameId = data.gameId;
     gameState = "waiting";
     currentMultiplier = 1.0;
+      hasCashedOut = false; // Reset cashout flag when new game starts
+      cashedOutMultiplier = 0; // Reset cashed out multiplier
+
+    // Hide win info when new game starts
+    const winInfoEl = document.getElementById("crash-win-info");
+    if (winInfoEl) {
+      winInfoEl.classList.add("hidden");
+    }
 
     // Clear current bets list
     const betsListEl = document.getElementById("crash-bets-list");
     if (betsListEl) betsListEl.innerHTML = "";
 
+    console.log("Game start event - gameId:", data.gameId, "currentBetId:", currentBetId);
     updateUI();
   }
 
   function handleGameTick(data) {
+    // Update multiplier for all players' bets in the table (if game is running)
+    if (gameState === "running") {
+      const betsListEl = document.getElementById("crash-bets-list");
+      if (betsListEl) {
+        const multiplierCells = betsListEl.querySelectorAll(".player-multiplier");
+        multiplierCells.forEach((cell) => {
+          cell.textContent = data.multiplier.toFixed(2) + "x";
+        });
+      }
+    }
+    
+    // Always update the main multiplier display - game continues for all players
     if (gameState !== "running") {
       gameState = "running";
+      console.log("Game started! State changed to 'running'. currentBetId:", currentBetId);
     }
     currentMultiplier = data.multiplier;
     updateUI();
@@ -152,6 +142,13 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       gameState = "waiting";
       currentMultiplier = 1.0;
+      hasCashedOut = false; // Reset cashout flag for new game
+
+      // Hide win info when game crashes
+      const winInfoEl = document.getElementById("crash-win-info");
+      if (winInfoEl) {
+        winInfoEl.classList.add("hidden");
+      }
 
       // Clear current bets list
       const betsListEl = document.getElementById("crash-bets-list");
@@ -185,9 +182,12 @@ document.addEventListener("DOMContentLoaded", () => {
       window.currentUser?.id?.toString();
     
     if (currentUserId && data.userId === currentUserId && currentBetId) {
-      // Reset bet state for current user
+      // Reset bet state for current user - game continues for others but stops updating for this user
       currentBetId = null;
       currentBetAmount = 0;
+      hasCashedOut = true; // Mark that user has cashed out - stop game updates
+      cashedOutMultiplier = data.multiplier; // Save multiplier at cashout
+      console.log("User cashed out, stopping game updates for this user");
       updateUI(); // Hide bet info panel
     }
 
@@ -222,7 +222,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     if (statusEl) {
-      if (gameState === "waiting") {
+      if (hasCashedOut && gameState === "running") {
+        // Show cashed out status if user has cashed out but game is still running
+        statusEl.textContent = `Cashed out at ${cashedOutMultiplier > 0 ? cashedOutMultiplier.toFixed(2) : currentMultiplier.toFixed(2)}x`;
+        statusEl.style.color = "var(--accent-success)";
+      } else if (gameState === "waiting") {
         statusEl.textContent = "Waiting for bets...";
         statusEl.style.color = "var(--text-dim)";
       } else if (gameState === "running") {
@@ -252,11 +256,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const isDisabled = !currentBetId || gameState !== "running";
       cashoutBtn.disabled = isDisabled;
       
-      // Additional check: if we have a bet but gameState is not running,
-      // try to reload game state to sync
+      // Log state for debugging
       if (currentBetId && gameState !== "running" && gameState !== "crashed") {
-        console.warn("Bet exists but gameState is not 'running'. Current state:", gameState);
-        // Don't reload here to avoid infinite loop, but log warning
+        // This is normal during waiting phase - bet is placed but game hasn't started yet
+        // Cashout button will be enabled when game state changes to "running" via game:tick event
       }
       
       console.log(
@@ -318,7 +321,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await response.json();
       currentGameId = data.gameId;
       gameState = data.state;
-      console.log("Loaded game state:", gameState, "GameId:", currentGameId);
+      console.log("Loaded game state:", gameState, "GameId:", currentGameId, "myBet:", data.myBet, "bets count:", data.bets?.length || 0);
 
       if (data.multiplier) {
         currentMultiplier = data.multiplier;
@@ -383,6 +386,26 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
+      // Load existing bets into the bets table
+      if (data.bets && data.bets.length > 0) {
+        const betsListEl = document.getElementById("crash-bets-list");
+        if (betsListEl) {
+          betsListEl.innerHTML = data.bets
+            .map((bet) => {
+              const userName = bet.userName || "Anonymous";
+              return `
+                <tr id="bet-${bet.userId}">
+                  <td style="padding: 0.5rem">${userName}</td>
+                  <td style="padding: 0.5rem">$${bet.amount.toFixed(2)}</td>
+                  <td class="player-multiplier" style="padding: 0.5rem">-</td>
+                  <td class="player-win" style="padding: 0.5rem">-</td>
+                </tr>
+              `;
+            })
+            .join("");
+        }
+      }
+
       console.log(
         "Before updateUI - gameState:",
         gameState,
@@ -406,7 +429,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!token || !historyTable) return;
 
       const response = await fetch(
-        `${API_URL}/crash/history?limit=20&offset=0`,
+        `${API_URL}/crash/history?limit=10&offset=0`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -469,7 +492,7 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log("Amount:", amount, "AutoCashout:", autoCashout);
 
       if (isNaN(amount) || amount < 0.1) {
-        await showModal("Invalid Bet", "Bet amount must be at least $0.10");
+        console.error("Invalid Bet: Bet amount must be at least $0.10");
         return;
       }
 
@@ -477,7 +500,7 @@ document.addEventListener("DOMContentLoaded", () => {
         autoCashout !== undefined &&
         (isNaN(autoCashout) || autoCashout < 1.0)
       ) {
-        await showModal("Invalid Auto Cashout", "Auto cashout multiplier must be at least 1.00");
+        console.error("Invalid Auto Cashout: Auto cashout multiplier must be at least 1.00");
         return;
       }
 
@@ -486,7 +509,7 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
             const token = localStorage.getItem("token");
             if (!token) {
-              await showModal("Authentication Required", "Please login first");
+              console.error("Authentication Required: Please login first");
               betBtn.disabled = false;
               return;
             }
@@ -535,7 +558,7 @@ document.addEventListener("DOMContentLoaded", () => {
           // If user already has a bet, reload current game to update state
           if (errorMessage.includes("already have an active bet")) {
             await loadCurrentGame(); // This will call updateUI() which will disable the button
-            await showModal("Bet Already Placed", "You already have an active bet in this game");
+            console.error("Bet Already Placed: You already have an active bet in this game");
             return;
           }
 
@@ -582,7 +605,6 @@ document.addEventListener("DOMContentLoaded", () => {
         updateUI();
       } catch (error) {
           console.error("Bet error:", error);
-          await showModal("Bet Failed", error.message || "Failed to place bet");
           betBtn.disabled = false;
       }
     });
@@ -595,7 +617,7 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log("Cashout button clicked. currentBetId:", currentBetId, "gameState:", gameState);
       
       if (!currentBetId) {
-        await showModal("No Active Bet", "You don't have an active bet to cashout");
+        console.error("No Active Bet: You don't have an active bet to cashout");
         return;
       }
 
@@ -608,13 +630,10 @@ document.addEventListener("DOMContentLoaded", () => {
           if (gameState !== "running") {
             const errorMsg = `Cannot cashout. Game state is: ${gameState}. Game must be running.`;
             console.error(errorMsg);
-            await showModal("Cannot Cashout", errorMsg);
             return;
           }
         } catch (error) {
           console.error("Failed to sync game state:", error);
-          const errorMsg = `Cannot cashout. Failed to sync game state: ${error.message}`;
-          await showModal("Sync Error", errorMsg);
           return;
         }
       }
@@ -624,7 +643,7 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const token = localStorage.getItem("token");
         if (!token) {
-          await showModal("Authentication Required", "Please login first");
+          console.error("Authentication Required: Please login first");
           cashoutBtn.disabled = false;
           return;
         }
@@ -675,20 +694,37 @@ document.addEventListener("DOMContentLoaded", () => {
 
         console.log("Cashout successful:", data);
         
+        // Save multiplier at cashout for display
+        cashedOutMultiplier = data.multiplier;
+        
+        // Save multiplier at cashout for display
+        cashedOutMultiplier = data.multiplier;
+        
         // Reset bet state first (before updateUI to hide bet info)
         currentBetId = null;
         currentBetAmount = 0;
+        hasCashedOut = true; // Mark that user has cashed out - stop game updates
+
+        // Show win information under cashout button
+        const winInfoEl = document.getElementById("crash-win-info");
+        const winMultiplierEl = document.getElementById("crash-win-multiplier");
+        const winAmountEl = document.getElementById("crash-win-amount");
+        
+        if (winInfoEl) {
+          winInfoEl.classList.remove("hidden");
+        }
+        if (winMultiplierEl) {
+          winMultiplierEl.textContent = data.multiplier.toFixed(2) + "x";
+        }
+        if (winAmountEl) {
+          winAmountEl.textContent = "$" + data.winAmount.toFixed(2);
+        }
 
         // Update UI immediately to hide bet info panel and disable cashout button
         updateUI();
         
-        // Load history and show success message
+        // Load history
         loadHistory();
-        
-        await showModal(
-          "Cashout Successful",
-          `Cashed out at ${data.multiplier.toFixed(2)}x!\nWin: $${data.winAmount.toFixed(2)}`
-        );
         
         // Don't enable cashout button - bet is already cashed out, updateUI() will handle it
         // updateUI() already set cashoutBtn.disabled = true because currentBetId is now null
@@ -703,15 +739,87 @@ document.addEventListener("DOMContentLoaded", () => {
         
         // On error, restore button state so user can try again
         cashoutBtn.disabled = false;
-        await showModal("Cashout Failed", error.message || "Failed to cashout");
+        console.error("Cashout Failed:", error.message || "Failed to cashout");
       }
     });
   }
 
-  // Initial load if tab is already active
-  if (!crashView.classList.contains("hidden")) {
-    connectWebSocket();
-    loadCurrentGame();
-    loadHistory();
+  // Don't auto-connect - user must click Start Game button
+
+  // Admin controls
+  const adminStartBtn = document.getElementById("crash-admin-start");
+  const adminStopBtn = document.getElementById("crash-admin-stop");
+
+  if (adminStartBtn) {
+    adminStartBtn.addEventListener("click", async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          console.error("Authentication Required: Please login first");
+          return;
+        }
+
+        adminStartBtn.disabled = true;
+
+        // Connect WebSocket first if not connected
+        if (!socket || !socket.connected) {
+          connectWebSocket();
+          // Wait a bit for connection to establish
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+
+        // Start the game on backend
+        const response = await fetch(`${API_URL}/crash/admin/start`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ message: "Failed to start game" }));
+          throw new Error(errorData.message || "Failed to start game");
+        }
+
+        // Load current game state and history
+        loadCurrentGame();
+        loadHistory();
+      } catch (error) {
+        console.error("Failed to start game:", error);
+      } finally {
+        adminStartBtn.disabled = false;
+      }
+    });
+  }
+
+  if (adminStopBtn) {
+    adminStopBtn.addEventListener("click", async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          console.error("Authentication Required: Please login first");
+          return;
+        }
+
+        adminStopBtn.disabled = true;
+        const response = await fetch(`${API_URL}/crash/admin/stop`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ message: "Failed to stop game" }));
+          throw new Error(errorData.message || "Failed to stop game");
+        }
+      } catch (error) {
+        console.error("Failed to stop game:", error);
+      } finally {
+        adminStopBtn.disabled = false;
+      }
+    });
   }
 });

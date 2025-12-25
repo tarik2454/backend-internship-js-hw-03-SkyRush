@@ -14,7 +14,6 @@ export interface CrashGameHistory {
   crashPoint: number;
   hash: string;
   seed: string;
-  createdAt?: Date;
 }
 
 export interface GetCrashHistoryResponse {
@@ -24,6 +23,7 @@ export interface GetCrashHistoryResponse {
 export interface CrashBet {
   betId: string;
   userId: string;
+  userName?: string;
   amount: number;
   multiplier?: number;
 }
