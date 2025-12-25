@@ -35,3 +35,5 @@ httpServer.listen(PORT, () => {
   console.log(`Server running on port: ${PORT}`);
   console.log(`WebSocket server ready on /crash namespace`);
 });
+
+export default app;
