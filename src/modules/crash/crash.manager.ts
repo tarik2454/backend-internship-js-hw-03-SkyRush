@@ -8,6 +8,7 @@ import {
   generateCrashPoint,
 } from "./crash.utils";
 import mongoose from "mongoose";
+import leaderboardService from "../leaderboard/leaderboard.service";
 
 export enum CrashState {
   WAITING = "waiting",
@@ -207,6 +208,17 @@ class CrashManager {
       );
 
       await session.commitTransaction();
+
+      const isWin = true;
+      const netWin = winAmount - bet.amount;
+      leaderboardService
+        .updateStats(bet.userId, bet.amount, netWin, isWin)
+        .catch((err) => {
+          console.error("Leaderboard update failed", {
+            userId: bet.userId.toString(),
+            error: err,
+          });
+        });
     } catch (error) {
       await session.abortTransaction();
       throw error;
@@ -233,10 +245,28 @@ class CrashManager {
       crashedAt: new Date(),
     });
 
+    const lostBets = await CrashBet.find({
+      gameId,
+      status: "active",
+    });
+
     await CrashBet.updateMany(
       { gameId, status: "active" },
       { $set: { status: "lost" } }
     );
+
+    for (const bet of lostBets) {
+      const isWin = false;
+      const netWin = -bet.amount;
+      leaderboardService
+        .updateStats(bet.userId, bet.amount, netWin, isWin)
+        .catch((err) => {
+          console.error("Leaderboard update failed", {
+            userId: bet.userId.toString(),
+            error: err,
+          });
+        });
+    }
 
     crashWebSocketHandler.emitGameCrash(
       gameId,

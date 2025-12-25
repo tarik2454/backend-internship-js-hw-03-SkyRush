@@ -13,6 +13,7 @@ import { Crash } from "./models/crash/crash.model";
 import { CrashBet } from "./models/crash-bets/crash-bets.model";
 import { ICrash } from "./models/crash/crash.types";
 import auditService from "../audit/audit.service";
+import leaderboardService from "../leaderboard/leaderboard.service";
 import crashManager from "./crash.manager";
 
 class CrashService {
@@ -239,6 +240,17 @@ class CrashService {
       await session.commitTransaction();
 
       await crashManager.stopGame(bet.gameId.toString());
+
+      const isWin = true;
+      const netWin = winAmount - bet.amount;
+      leaderboardService
+        .updateStats(user._id, bet.amount, netWin, isWin)
+        .catch((err) => {
+          console.error("Leaderboard update failed", {
+            userId: user._id.toString(),
+            error: err,
+          });
+        });
 
       auditService
         .log({
