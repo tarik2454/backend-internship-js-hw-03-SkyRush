@@ -15,18 +15,6 @@ export interface GameCrashEvent {
   reveal: string;
 }
 
-export interface PlayerBetEvent {
-  userId: string;
-  userName: string;
-  amount: number;
-}
-
-export interface PlayerCashoutEvent {
-  userId: string;
-  multiplier: number;
-  winAmount: number;
-}
-
 // Client → Server events
 export interface BetPlaceEvent {
   amount: number;

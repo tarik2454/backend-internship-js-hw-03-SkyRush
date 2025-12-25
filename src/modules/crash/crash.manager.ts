@@ -201,11 +201,6 @@ class CrashManager {
       );
 
       await session.commitTransaction();
-      crashWebSocketHandler.emitPlayerCashout(
-        bet.userId.toString(),
-        multiplier,
-        winAmount
-      );
     } catch (error) {
       await session.abortTransaction();
       throw error;

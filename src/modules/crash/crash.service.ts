@@ -5,6 +5,8 @@ import {
   CashoutCrashResponse,
   GetCrashHistoryResponse,
   GetCurrentCrashResponse,
+  GetBetHistoryResponse,
+  CrashBetHistory,
 } from "./crash.types";
 import { HttpError } from "../../helpers";
 import { CrashGame } from "./models/crash-games/crash-games.model";
@@ -12,7 +14,6 @@ import { CrashBet } from "./models/crash-bets/crash-bets.model";
 import { ICrashGame } from "./models/crash-games/crash-games.types";
 import auditService from "../audit/audit.service";
 import crashManager, { CrashState } from "./crash.manager";
-import crashWebSocketHandler from "./crash.ws.handler";
 
 class CrashService {
   async betCrash(
@@ -138,13 +139,6 @@ class CrashService {
           console.error("Audit log failed:", err);
         });
 
-      // Emit WebSocket event for real-time tracking
-      crashWebSocketHandler.emitPlayerBet(
-        user._id.toString(),
-        user.username || "Anonymous",
-        amount
-      );
-
       return {
         betId: bet[0]._id.toString(),
         amount,
@@ -247,13 +241,6 @@ class CrashService {
 
       await session.commitTransaction();
 
-      // Emit WebSocket event
-      crashWebSocketHandler.emitPlayerCashout(
-        user._id.toString(),
-        currentMultiplier,
-        winAmount
-      );
-
       // Log audit
       auditService
         .log({
@@ -347,73 +334,19 @@ class CrashService {
       throw HttpError(404, "No active game found");
     }
 
-    // Get all active bets for this game
-    const betQuery: {
-      gameId: Types.ObjectId;
-      status: "active";
-    } = {
-      gameId: currentGame._id,
-      status: "active",
-    };
-
-    const bets = await CrashBet.find(betQuery)
-      .populate("userId", "username")
-      .select("_id userId amount")
-      .lean();
-
-    console.log(
-      `[getCurrentCrash] Found ${bets.length} active bets for game ${currentGame._id}`
-    );
-    if (user) {
-      console.log(`[getCurrentCrash] Looking for bet for user ${user._id}`);
-    }
-
     // Get current multiplier if game is running
     let multiplier: number | undefined;
     if (currentGame.status === "running" && currentGame.startedAt) {
       multiplier = (await this.getCurrentMultiplier(currentGame)) || undefined;
     }
 
-    const betsList = bets.map((bet) => {
-      let userIdStr: string;
-      let userName: string | undefined;
-
-      // Handle populated user object (after populate, userId can be an object with _id and username)
-      const userId = bet.userId as unknown;
-      if (userId && typeof userId === "object" && "_id" in userId) {
-        // Populated user object
-        const userObj = userId as { _id: Types.ObjectId; username?: string };
-        userIdStr = userObj._id.toString();
-        userName = userObj.username;
-      } else if (userId instanceof Types.ObjectId) {
-        userIdStr = userId.toString();
-      } else {
-        userIdStr = String(userId);
-      }
-
-      return {
-        betId: bet._id.toString(),
-        userId: userIdStr,
-        userName: userName || "Anonymous",
-        amount: bet.amount,
-        multiplier: currentGame.status === "running" ? multiplier : undefined,
-      };
-    });
-
     // Find user's bet if user is provided
     let myBet: { betId: string; amount: number } | undefined;
     if (user) {
-      const userIdStr = user._id.toString();
-      const userBet = bets.find((bet) => {
-        const betUserIdStr =
-          bet.userId instanceof Types.ObjectId
-            ? bet.userId.toString()
-            : typeof bet.userId === "object" &&
-              bet.userId !== null &&
-              "_id" in bet.userId
-            ? String((bet.userId as { _id: unknown })._id)
-            : String(bet.userId);
-        return betUserIdStr === userIdStr;
+      const userBet = await CrashBet.findOne({
+        gameId: currentGame._id,
+        userId: user._id,
+        status: "active",
       });
 
       if (userBet) {
@@ -421,13 +354,6 @@ class CrashService {
           betId: userBet._id.toString(),
           amount: userBet.amount,
         };
-        console.log(
-          `[getCurrentCrash] Found user bet: ${myBet.betId}, amount: ${myBet.amount}`
-        );
-      } else {
-        console.log(
-          `[getCurrentCrash] No bet found for user ${userIdStr} in ${bets.length} bets`
-        );
       }
     }
 
@@ -436,8 +362,55 @@ class CrashService {
       state: currentGame.status,
       multiplier,
       serverSeedHash: currentGame.serverSeedHash,
-      bets: betsList,
+      bets: [],
       myBet,
+    };
+  }
+
+  async getUserBetHistory(
+    user: HydratedDocument<IUser>,
+    limit: number,
+    offset: number
+  ): Promise<GetBetHistoryResponse> {
+    const bets = await CrashBet.find({
+      userId: user._id,
+      status: { $in: ["won", "lost"] },
+    })
+      .populate("gameId", "crashPoint")
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .skip(offset)
+      .lean();
+
+    const betsHistory: CrashBetHistory[] = bets.map((bet) => {
+      const game = bet.gameId as unknown;
+      let crashPoint = 0;
+
+      if (game && typeof game === "object" && "crashPoint" in game) {
+        crashPoint = (game as { crashPoint: number }).crashPoint;
+      }
+
+      return {
+        betId: bet._id.toString(),
+        gameId:
+          bet.gameId instanceof Types.ObjectId
+            ? bet.gameId.toString()
+            : typeof bet.gameId === "object" &&
+              bet.gameId !== null &&
+              "_id" in bet.gameId
+            ? String((bet.gameId as { _id: unknown })._id)
+            : String(bet.gameId),
+        amount: bet.amount,
+        cashoutMultiplier: bet.cashoutMultiplier,
+        winAmount: bet.winAmount,
+        status: bet.status as "won" | "lost",
+        crashPoint,
+        createdAt: bet.createdAt,
+      };
+    });
+
+    return {
+      bets: betsHistory,
     };
   }
 }

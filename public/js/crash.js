@@ -55,16 +55,6 @@ document.addEventListener("DOMContentLoaded", () => {
     socket.on("game:crash", (data) => {
       handleGameCrash(data);
     });
-
-    socket.on("player:bet", (data) => {
-      console.log("Player bet:", data);
-      handlePlayerBet(data);
-    });
-
-    socket.on("player:cashout", (data) => {
-      console.log("Player cashout:", data);
-      handlePlayerCashout(data);
-    });
   }
 
   function disconnectWebSocket() {
@@ -100,27 +90,12 @@ document.addEventListener("DOMContentLoaded", () => {
       winInfoEl.classList.add("hidden");
     }
 
-    // Clear current bets list
-    const betsListEl = document.getElementById("crash-bets-list");
-    if (betsListEl) betsListEl.innerHTML = "";
-
     console.log("Game start event - gameId:", data.gameId, "currentBetId:", currentBetId);
     updateUI();
   }
 
   function handleGameTick(data) {
-    // Update multiplier for all players' bets in the table (if game is running)
-    if (gameState === "running") {
-      const betsListEl = document.getElementById("crash-bets-list");
-      if (betsListEl) {
-        const multiplierCells = betsListEl.querySelectorAll(".player-multiplier");
-        multiplierCells.forEach((cell) => {
-          cell.textContent = data.multiplier.toFixed(2) + "x";
-        });
-      }
-    }
-    
-    // Always update the main multiplier display - game continues for all players
+    // Always update the main multiplier display
     if (gameState !== "running") {
       gameState = "running";
       console.log("Game started! State changed to 'running'. currentBetId:", currentBetId);
@@ -150,62 +125,9 @@ document.addEventListener("DOMContentLoaded", () => {
         winInfoEl.classList.add("hidden");
       }
 
-      // Clear current bets list
-      const betsListEl = document.getElementById("crash-bets-list");
-      if (betsListEl) betsListEl.innerHTML = "";
-
       updateUI();
       loadHistory();
     }, 3000);
-  }
-
-  function handlePlayerBet(data) {
-    // Add to current bets list UI
-    const betsListEl = document.getElementById("crash-bets-list");
-    if (!betsListEl) return;
-
-    const row = document.createElement("tr");
-    row.id = `bet-${data.userId}`;
-    row.innerHTML = `
-      <td style="padding: 0.5rem">${data.userName || "Anonymous"}</td>
-      <td style="padding: 0.5rem">$${data.amount.toFixed(2)}</td>
-      <td class="player-multiplier" style="padding: 0.5rem">-</td>
-      <td class="player-win" style="padding: 0.5rem">-</td>
-    `;
-    betsListEl.appendChild(row);
-  }
-
-  function handlePlayerCashout(data) {
-    // Check if this is the current user's cashout
-    const currentUserId =
-      window.currentUser?._id?.toString() ||
-      window.currentUser?.id?.toString();
-    
-    if (currentUserId && data.userId === currentUserId && currentBetId) {
-      // Reset bet state for current user - game continues for others but stops updating for this user
-      currentBetId = null;
-      currentBetAmount = 0;
-      hasCashedOut = true; // Mark that user has cashed out - stop game updates
-      cashedOutMultiplier = data.multiplier; // Save multiplier at cashout
-      console.log("User cashed out, stopping game updates for this user");
-      updateUI(); // Hide bet info panel
-    }
-
-    // Update the bets list table
-    const row = document.getElementById(`bet-${data.userId}`);
-    if (!row) return;
-
-    const multEl = row.querySelector(".player-multiplier");
-    const winEl = row.querySelector(".player-win");
-
-    if (multEl) {
-      multEl.textContent = data.multiplier.toFixed(2) + "x";
-      multEl.style.color = "var(--accent-success)";
-    }
-    if (winEl) {
-      winEl.textContent = "$" + data.winAmount.toFixed(2);
-      winEl.style.color = "var(--accent-success)";
-    }
   }
 
   function updateUI() {
@@ -321,7 +243,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await response.json();
       currentGameId = data.gameId;
       gameState = data.state;
-      console.log("Loaded game state:", gameState, "GameId:", currentGameId, "myBet:", data.myBet, "bets count:", data.bets?.length || 0);
+      console.log("Loaded game state:", gameState, "GameId:", currentGameId, "myBet:", data.myBet);
 
       if (data.multiplier) {
         currentMultiplier = data.multiplier;
@@ -334,7 +256,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const previousBetAmount = currentBetAmount;
       const previousGameId = currentGameId;
       
-      // Check if current user has an active bet (use myBet if available, otherwise check bets array)
+      // Check if current user has an active bet
       if (data.myBet) {
         currentBetId = data.myBet.betId;
         currentBetAmount = data.myBet.amount;
@@ -344,65 +266,17 @@ document.addEventListener("DOMContentLoaded", () => {
           "Amount:",
           currentBetAmount
         );
-      } else if (window.currentUser && data.bets && data.bets.length > 0) {
-        const currentUserId =
-          window.currentUser._id?.toString() ||
-          window.currentUser.id?.toString();
-        const userBet = data.bets.find((bet) => bet.userId === currentUserId);
-
-        if (userBet) {
-          currentBetId = userBet.betId;
-          currentBetAmount = userBet.amount || 0;
-          console.log(
-            "Found active bet from bets array:",
-            currentBetId,
-            "Amount:",
-            currentBetAmount
-          );
-        } else {
-          // Only reset if we're sure there's no bet (don't reset if we just placed one)
-          // Keep previous betId if gameId matches and we had one before
-          if (data.gameId === previousGameId && previousBetId) {
-            console.log("No bet in response but keeping previous betId for same game:", previousBetId);
-            currentBetId = previousBetId;
-            currentBetAmount = previousBetAmount;
-          } else {
-            currentBetId = null;
-            currentBetAmount = 0;
-            console.log("No active bet found for user");
-          }
-        }
       } else {
         // Only reset if gameId doesn't match (different game)
         // Keep previous betId if it's for the same game
         if (data.gameId === previousGameId && previousBetId) {
-          console.log("No bets in response but keeping previous betId for same game:", previousBetId);
+          console.log("No myBet in response but keeping previous betId for same game:", previousBetId);
           currentBetId = previousBetId;
           currentBetAmount = previousBetAmount;
         } else {
           currentBetId = null;
           currentBetAmount = 0;
-          console.log("No bets or user found, reset state");
-        }
-      }
-
-      // Load existing bets into the bets table
-      if (data.bets && data.bets.length > 0) {
-        const betsListEl = document.getElementById("crash-bets-list");
-        if (betsListEl) {
-          betsListEl.innerHTML = data.bets
-            .map((bet) => {
-              const userName = bet.userName || "Anonymous";
-              return `
-                <tr id="bet-${bet.userId}">
-                  <td style="padding: 0.5rem">${userName}</td>
-                  <td style="padding: 0.5rem">$${bet.amount.toFixed(2)}</td>
-                  <td class="player-multiplier" style="padding: 0.5rem">-</td>
-                  <td class="player-win" style="padding: 0.5rem">-</td>
-                </tr>
-              `;
-            })
-            .join("");
+          console.log("No active bet found for user");
         }
       }
 
@@ -429,7 +303,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!token || !historyTable) return;
 
       const response = await fetch(
-        `${API_URL}/crash/history?limit=10&offset=0`,
+        `${API_URL}/crash/bets/history?limit=10&offset=0`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -442,38 +316,47 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const data = await response.json();
-      renderHistory(data.games);
+      renderHistory(data.bets);
     } catch (error) {
       console.error("Failed to load history:", error);
     }
   }
 
-  function renderHistory(games) {
+  function renderHistory(bets) {
     if (!historyTable) return;
 
-    if (games.length === 0) {
+    if (bets.length === 0) {
       historyTable.innerHTML = `
         <tr>
           <td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-dim)">
-            No game history yet
+            No bet history yet
           </td>
         </tr>
       `;
       return;
     }
 
-    historyTable.innerHTML = games
-      .map((game) => {
-        const date = game.createdAt ? new Date(game.createdAt) : new Date();
+    historyTable.innerHTML = bets
+      .map((bet) => {
+        const date = new Date(bet.createdAt).toLocaleString();
+        const multiplier = bet.cashoutMultiplier 
+          ? bet.cashoutMultiplier.toFixed(2) + "x"
+          : bet.crashPoint.toFixed(2) + "x";
+        const winAmount = bet.winAmount 
+          ? `$${bet.winAmount.toFixed(2)}`
+          : "$0.00";
+        const statusColor = bet.status === "won" 
+          ? "var(--accent-success)" 
+          : "var(--accent-error, #ef4444)";
+        const statusText = bet.status === "won" ? "Won" : "Lost";
+
         return `
           <tr>
-            <td style="padding: 1rem">${date.toLocaleString()}</td>
-            <td style="padding: 1rem">-</td>
-            <td style="padding: 1rem; font-weight: 600; color: var(--accent-success)">${game.crashPoint.toFixed(
-              2
-            )}x</td>
-            <td style="padding: 1rem">-</td>
-            <td style="padding: 1rem">-</td>
+            <td style="padding: 1rem; font-size: 0.875rem; color: var(--text-dim)">${date}</td>
+            <td style="padding: 1rem">$${bet.amount.toFixed(2)}</td>
+            <td style="padding: 1rem; font-weight: 600; color: var(--accent-success)">${multiplier}</td>
+            <td style="padding: 1rem; font-weight: 600; color: ${statusColor}">${winAmount}</td>
+            <td style="padding: 1rem; color: ${statusColor}">${statusText}</td>
           </tr>
         `;
       })

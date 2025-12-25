@@ -11,6 +11,7 @@ import {
   betCrashSchema,
   cashoutCrashSchema,
   getCrashHistorySchema,
+  getBetHistorySchema,
 } from "./crash.schema";
 
 const crashRouter = express.Router();
@@ -46,6 +47,14 @@ crashRouter.get(
   authenticate,
   generalLimiter,
   crashController.getCurrentCrash
+);
+
+crashRouter.get(
+  "/bets/history",
+  authenticate,
+  generalLimiter,
+  validateQuery(getBetHistorySchema),
+  crashController.getUserBetHistory
 );
 
 crashRouter.post(

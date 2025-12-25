@@ -25,7 +25,13 @@ export const getCrashHistorySchema = z.object({
   offset: z.coerce.number().int().min(0).optional().default(0),
 });
 
+export const getBetHistorySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(10).optional().default(10),
+  offset: z.coerce.number().int().min(0).optional().default(0),
+});
+
 export type BetCrashDTO = z.infer<typeof betCrashSchema>;
 export type CashoutCrashDTO = z.infer<typeof cashoutCrashSchema>;
 export type GetCrashHistoryDTO = z.infer<typeof getCrashHistorySchema>;
+export type GetBetHistoryDTO = z.infer<typeof getBetHistorySchema>;
 

@@ -39,3 +39,18 @@ export interface GetCurrentCrashResponse {
     amount: number;
   };
 }
+
+export interface CrashBetHistory {
+  betId: string;
+  gameId: string;
+  amount: number;
+  cashoutMultiplier?: number;
+  winAmount?: number;
+  status: "won" | "lost";
+  crashPoint: number;
+  createdAt: Date;
+}
+
+export interface GetBetHistoryResponse {
+  bets: CrashBetHistory[];
+}

@@ -4,8 +4,6 @@ import {
   GameStartEvent,
   GameTickEvent,
   GameCrashEvent,
-  PlayerBetEvent,
-  PlayerCashoutEvent,
   BetPlaceEvent,
   BetCashoutEvent,
 } from "./crash.ws.types";
@@ -77,24 +75,6 @@ class CrashWebSocketHandler {
     if (!this.io) return;
     const event: GameCrashEvent = { crashPoint, serverSeed, reveal };
     this.io.of("/crash").emit("game:crash", event);
-  }
-
-  // Server → Client: player:bet
-  emitPlayerBet(userId: string, userName: string, amount: number): void {
-    if (!this.io) return;
-    const event: PlayerBetEvent = { userId, userName, amount };
-    this.io.of("/crash").emit("player:bet", event);
-  }
-
-  // Server → Client: player:cashout
-  emitPlayerCashout(
-    userId: string,
-    multiplier: number,
-    winAmount: number
-  ): void {
-    if (!this.io) return;
-    const event: PlayerCashoutEvent = { userId, multiplier, winAmount };
-    this.io.of("/crash").emit("player:cashout", event);
   }
 }
 
