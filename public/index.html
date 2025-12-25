@@ -61,6 +61,8 @@
         <button id="tab-mines" class="tab-btn secondary">Mines</button>
         <button id="tab-plinko" class="tab-btn secondary">Plinko</button>
         <button id="tab-bonus" class="tab-btn secondary">Bonus</button>
+        <button id="tab-leaderboard" class="tab-btn secondary">Leaderboard</button>
+        <button id="tab-audit" class="tab-btn secondary">Audit</button>
       </div>
 
       <div id="cases-view">
@@ -69,7 +71,7 @@
       </div>
 
       <!-- Plinko View -->
-      <div id="plinko-view" class="hidden game-container">
+      <div id="plinko-view" class="hidden">
         <div
           style="
             display: grid;
@@ -415,9 +417,30 @@
                   font-weight: 600;
                   color: var(--text-dim);
                   min-height: 1.5rem;
+                  margin-bottom: 1.5rem;
                 "
               >
                 -
+              </div>
+              
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                <div>
+                  <div style="color: var(--text-dim); font-size: 0.75rem; margin-bottom: 0.25rem;">Base Amount</div>
+                  <div id="bonus-base-amount" style="font-size: 1.1rem; font-weight: 600; color: var(--text-light);">$0.00</div>
+                </div>
+                <div>
+                  <div style="color: var(--text-dim); font-size: 0.75rem; margin-bottom: 0.25rem;">Wager Bonus</div>
+                  <div id="bonus-wager-bonus" style="font-size: 1.1rem; font-weight: 600; color: var(--text-light);">$0.00</div>
+                </div>
+                <div>
+                  <div style="color: var(--text-dim); font-size: 0.75rem; margin-bottom: 0.25rem;">Games Bonus</div>
+                  <div id="bonus-games-bonus" style="font-size: 1.1rem; font-weight: 600; color: var(--text-light);">$0.00</div>
+                </div>
+              </div>
+              
+              <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                <div style="color: var(--text-dim); font-size: 0.75rem; margin-bottom: 0.25rem;">Next Claim At</div>
+                <div id="bonus-next-claim-at" style="font-size: 0.875rem; color: var(--text-light);">-</div>
               </div>
             </div>
 
@@ -444,6 +467,112 @@
           </div>
         </div>
       </div>
+
+      <!-- Leaderboard View -->
+      <div id="leaderboard-view" class="hidden">
+        <div class="card">
+          <h2 style="margin-bottom: 1.5rem; text-align: center;">Leaderboard</h2>
+          
+          <div style="margin-bottom: 1.5rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <button id="leaderboard-period-daily" class="secondary" data-period="daily">Daily</button>
+            <button id="leaderboard-period-weekly" class="secondary" data-period="weekly">Weekly</button>
+            <button id="leaderboard-period-monthly" class="secondary" data-period="monthly">Monthly</button>
+            <button id="leaderboard-period-all" class="secondary active" data-period="all">All Time</button>
+          </div>
+
+          <div id="leaderboard-current-user" style="margin-bottom: 1.5rem;"></div>
+
+          <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <thead>
+                <tr style="border-bottom: 2px solid rgba(102, 126, 234, 0.3);">
+                  <th style="padding: 0.75rem; text-align: left;">Rank</th>
+                  <th style="padding: 0.75rem; text-align: left;">Username</th>
+                  <th style="padding: 0.75rem; text-align: right;">Total Wagered</th>
+                  <th style="padding: 0.75rem; text-align: right;">Games Played</th>
+                  <th style="padding: 0.75rem; text-align: right;">Win Rate</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboard-table-body">
+                <tr>
+                  <td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-dim);">
+                    Loading...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Audit Logs View -->
+      <div id="audit-view" class="hidden">
+      <div class="card">
+        <h2 style="margin-bottom: 1.5rem;">Audit Logs</h2>
+        
+        <div style="margin-bottom: 1rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+          <select id="audit-filter-type" style="padding: 0.5rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: white; border-radius: 0.5rem;">
+            <option value="">All Types</option>
+            <option value="User">User</option>
+            <option value="MinesGame">MinesGame</option>
+            <option value="PlinkoDrop">PlinkoDrop</option>
+            <option value="CaseOpening">CaseOpening</option>
+            <option value="BonusClaim">BonusClaim</option>
+            <option value="LeaderboardStats">LeaderboardStats</option>
+          </select>
+          <input 
+            type="number" 
+            id="audit-filter-limit" 
+            placeholder="Limit (max 100)" 
+            value="50" 
+            min="1" 
+            max="100"
+            style="padding: 0.5rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: white; border-radius: 0.5rem; width: 150px;"
+          />
+          <button id="audit-refresh-btn" class="secondary" style="padding: 0.5rem 1rem;">🔄 Refresh</button>
+        </div>
+
+        <div id="audit-loading" style="text-align: center; padding: 2rem; color: var(--text-dim);">
+          Loading...
+        </div>
+
+        <div id="audit-error" class="hidden" style="text-align: center; padding: 2rem; color: #ff4444;"></div>
+
+        <div id="audit-stats" style="margin-bottom: 1rem; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 0.5rem;">
+          <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+            <div>
+              <div style="color: var(--text-dim); font-size: 0.875rem;">Total Logs</div>
+              <div id="audit-total" style="font-size: 1.25rem; font-weight: 600;">-</div>
+            </div>
+            <div>
+              <div style="color: var(--text-dim); font-size: 0.875rem;">Showing</div>
+              <div id="audit-showing" style="font-size: 1.25rem; font-weight: 600;">-</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="padding: 0; overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+            <thead style="background-color: rgba(255, 255, 255, 0.05); color: var(--text-dim);">
+              <tr>
+                <th style="padding: 0.75rem; text-align: left;">Time</th>
+                <th style="padding: 0.75rem; text-align: left;">Action</th>
+                <th style="padding: 0.75rem; text-align: left;">Type</th>
+                <th style="padding: 0.75rem; text-align: left;">User</th>
+                <th style="padding: 0.75rem; text-align: left;">IP</th>
+                <th style="padding: 0.75rem; text-align: left;">Details</th>
+              </tr>
+            </thead>
+            <tbody id="audit-logs-table">
+              <tr>
+                <td colspan="6" style="padding: 2rem; text-align: center; color: var(--text-dim);">
+                  No logs found
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <div id="toast"></div>
@@ -454,5 +583,7 @@
       window.API_URL = window.API_URL || "http://localhost:3000/api";
     </script>
     <script src="js/bonus.js"></script>
+    <script src="js/leaderboard.js"></script>
+    <script src="js/audit.js"></script>
   </body>
 </html>

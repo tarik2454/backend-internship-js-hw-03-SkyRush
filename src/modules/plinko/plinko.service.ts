@@ -4,6 +4,8 @@ import { User } from "../users/models/users.model";
 import { PlinkoDrop } from "./models/plinko-drops/plinko-drops.model";
 import { PlinkoResult } from "./models/plinko-results/plinko-results.model";
 import { HttpError } from "../../helpers";
+import leaderboardService from "../leaderboard/leaderboard.service";
+import auditService from "../audit/audit.service";
 
 export class PlinkoService {
   private static readonly MULTIPLIERS = {
@@ -109,15 +111,33 @@ export class PlinkoService {
       balls: number;
       risk: "low" | "medium" | "high";
       lines: number;
-    }
+    },
+    ipAddress?: string,
+    userAgent?: string
   ) {
     const { amount, balls, risk, lines } = data;
     const totalBet = amount * balls;
+
+    if (amount < 0.1 || amount > 100) {
+      throw HttpError(400, "Bet amount must be between 0.10 and 100");
+    }
+
+    if (![1, 2, 5, 10].includes(balls)) {
+      throw HttpError(400, "Balls must be one of: 1, 2, 5, 10");
+    }
+
+    if (lines < 8 || lines > 16) {
+      throw HttpError(400, "Lines must be between 8 and 16");
+    }
 
     const user = await User.findById(userId);
     if (!user) {
       throw HttpError(404, "User not found");
     }
+
+    const oldBalance = user.balance;
+    const oldTotalWagered = user.totalWagered;
+    const oldGamesPlayed = user.gamesPlayed;
 
     if (user.balance < totalBet) {
       throw HttpError(400, "Insufficient balance");
@@ -136,9 +156,28 @@ export class PlinkoService {
     session.startTransaction();
 
     try {
-      user.balance -= totalBet;
-      user.totalWagered += totalBet;
-      user.gamesPlayed += 1;
+      const updatedUser = await User.findOneAndUpdate(
+        {
+          _id: userId,
+          balance: { $gte: totalBet },
+        },
+        {
+          $inc: {
+            balance: -totalBet,
+            totalWagered: totalBet,
+            gamesPlayed: 1,
+          },
+        },
+        {
+          session,
+          new: true,
+          runValidators: true,
+        }
+      );
+
+      if (!updatedUser) {
+        throw HttpError(400, "Insufficient balance or user not found");
+      }
 
       const drop = await PlinkoDrop.create(
         [
@@ -155,10 +194,10 @@ export class PlinkoService {
 
       const dropsResults = [];
       let totalWin = 0;
+      let currentNonce = updatedUser.nonce || 0;
 
       for (let i = 0; i < balls; i++) {
-        user.nonce += 1;
-        const currentNonce = user.nonce;
+        currentNonce += 1;
 
         const path = this.generateBallPath(
           serverSeed,
@@ -200,18 +239,66 @@ export class PlinkoService {
         });
       }
 
-      user.balance += totalWin;
-      if (totalWin > 0) {
-        user.totalWon += totalWin;
-      }
-
-      await user.save({ session });
+      const finalUser = await User.findByIdAndUpdate(
+        userId,
+        {
+          $inc: {
+            balance: totalWin,
+            totalWon: totalWin > 0 ? totalWin : 0,
+            nonce: balls,
+          },
+        },
+        { session, new: true }
+      );
 
       if (dropsResults.length > 0) {
         await PlinkoResult.insertMany(dropsResults, { session });
+        const dropDoc = drop[0];
+        dropDoc.completed = true;
+        dropDoc.completedAt = new Date();
+        await dropDoc.save({ session });
       }
 
       await session.commitTransaction();
+
+      const isWin = totalWin > totalBet;
+      const netWin = totalWin - totalBet;
+      leaderboardService
+        .updateStats(new mongoose.Types.ObjectId(userId), totalBet, netWin, isWin)
+        .catch((err) => {
+          console.error("Leaderboard update failed", {
+            userId: userId.toString(),
+            error: err,
+          });
+        });
+
+      auditService
+        .log({
+          userId: new mongoose.Types.ObjectId(userId),
+          action: "BET",
+          entityType: "PlinkoDrop",
+          entityId: drop[0]._id,
+          oldValue: {
+            balance: oldBalance,
+            totalWagered: oldTotalWagered,
+            gamesPlayed: oldGamesPlayed,
+          },
+          newValue: {
+            balance: finalUser?.balance || 0,
+            totalWagered: oldTotalWagered + totalBet,
+            gamesPlayed: oldGamesPlayed + 1,
+            totalBet,
+            totalWin,
+            balls,
+            risk,
+            lines,
+          },
+          ipAddress,
+          userAgent,
+        })
+        .catch((err) => {
+          console.error("Audit log failed:", err);
+        });
 
       return {
         drops: dropsResults.map((r) => ({
@@ -226,7 +313,7 @@ export class PlinkoService {
         })),
         totalBet,
         totalWin,
-        newBalance: user.balance,
+        newBalance: finalUser?.balance || 0,
       };
     } catch (error) {
       await session.abortTransaction();
@@ -236,9 +323,14 @@ export class PlinkoService {
     }
   }
 
-  static async getHistory(userId: string, limit = 20, offset = 0) {
-    const drops = await PlinkoDrop.find({ userId })
-      .sort({ createdAt: -1 })
+  static async getHistory(userId: string, limit = 10, offset = 0) {
+    const minCompletedAt = new Date(Date.now() - 10000);
+    const drops = await PlinkoDrop.find({
+      userId,
+      completed: true,
+      completedAt: { $lt: minCompletedAt },
+    })
+      .sort({ completedAt: -1, createdAt: -1 })
       .skip(offset)
       .limit(limit);
 

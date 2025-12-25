@@ -7,6 +7,7 @@ import { ctrlWrapper } from "../../decorators/index";
 import { AuthenticatedRequest } from "../../types";
 import { createUser } from "../users/users.controller";
 import { UserSignupDTO, UserSigninDTO } from "../users/users.schema";
+import auditService from "../audit/audit.service";
 
 const { JWT_SECRET } = process.env;
 
@@ -21,6 +22,31 @@ const signup = async (
     password,
     username,
   });
+
+  const ip =
+    (req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
+    (req.headers["x-real-ip"] as string) ||
+    req.socket.remoteAddress ||
+    req.ip ||
+    "unknown";
+  const userAgent = req.headers["user-agent"] || "unknown";
+
+  auditService
+    .log({
+      userId: newUser._id,
+      action: "REGISTER",
+      entityType: "User",
+      entityId: newUser._id,
+      newValue: {
+        username: newUser.username,
+        email: newUser.email,
+      },
+      ipAddress: ip,
+      userAgent,
+    })
+    .catch((err) => {
+      console.error("Audit log failed:", err);
+    });
 
   res.status(201).json({
     username: newUser.username,
@@ -51,6 +77,31 @@ const signin = async (
   });
 
   await User.findByIdAndUpdate(user._id, { token });
+
+  const ip =
+    (req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
+    (req.headers["x-real-ip"] as string) ||
+    req.socket.remoteAddress ||
+    req.ip ||
+    "unknown";
+  const userAgent = req.headers["user-agent"] || "unknown";
+
+  auditService
+    .log({
+      userId: user._id,
+      action: "LOGIN",
+      entityType: "User",
+      entityId: user._id,
+      newValue: {
+        lastLoginAt: new Date(),
+      },
+      ipAddress: ip,
+      userAgent,
+    })
+    .catch((err) => {
+      console.error("Audit log failed:", err);
+    });
+
   res.json({
     token,
   });
@@ -62,6 +113,20 @@ const signout = async (
 ): Promise<void> => {
   const { _id } = req.user;
   await User.findByIdAndUpdate(_id, { token: "" });
+
+  auditService
+    .log({
+      userId: _id,
+      action: "LOGOUT",
+      entityType: "User",
+      entityId: _id,
+      ipAddress: req.ip,
+      userAgent: req.userAgent,
+    })
+    .catch((err) => {
+      console.error("Audit log failed:", err);
+    });
+
   res.json({ message: "Logout success" });
 };
 

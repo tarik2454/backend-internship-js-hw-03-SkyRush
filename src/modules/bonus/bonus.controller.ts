@@ -15,7 +15,11 @@ const claimBonus = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
-  const result = await bonusService.claimBonus(req.user);
+  const result = await bonusService.claimBonus(
+    req.user,
+    req.ip,
+    req.userAgent
+  );
   res.json(result);
 };
 

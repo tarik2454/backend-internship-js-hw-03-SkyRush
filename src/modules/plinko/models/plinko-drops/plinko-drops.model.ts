@@ -12,6 +12,8 @@ const plinkoDropSchema = new Schema<IPlinkoDrop>(
       required: true,
     },
     linesCount: { type: Number, required: true },
+    completed: { type: Boolean, default: false },
+    completedAt: { type: Date },
   },
   { timestamps: true, versionKey: false }
 );

@@ -17,10 +17,10 @@ import {
 import { generateRoll } from "./cases.utils";
 import { IUser } from "../users/models/users.types";
 import { HttpError } from "../../helpers/index";
+import leaderboardService from "../leaderboard/leaderboard.service";
+import auditService from "../audit/audit.service";
 
-const toPopulatedCaseItem = (
-  doc: Document
-): PopulatedCaseItem => {
+const toPopulatedCaseItem = (doc: Document): PopulatedCaseItem => {
   return doc as unknown as PopulatedCaseItem;
 };
 
@@ -71,7 +71,9 @@ class CasesService {
   async openCase(
     user: HydratedDocument<IUser>,
     caseId: string,
-    clientSeed: string = crypto.randomBytes(16).toString("hex")
+    clientSeed: string = crypto.randomBytes(16).toString("hex"),
+    ipAddress?: string,
+    userAgent?: string
   ): Promise<OpenCaseResponse> {
     const caseToOpen = await Case.findById(caseId);
     if (!caseToOpen) {
@@ -81,6 +83,10 @@ class CasesService {
     if (user.balance < caseToOpen.price) {
       throw HttpError(400, "Insufficient balance");
     }
+
+    const oldBalance = user.balance;
+    const oldTotalWagered = user.totalWagered;
+    const oldGamesPlayed = user.gamesPlayed;
 
     const caseItems = await CaseItemModel.find({ caseId: caseId })
       .populate({
@@ -122,18 +128,39 @@ class CasesService {
     session.startTransaction();
 
     try {
-      if (!user.serverSeed) {
-        user.serverSeed = serverSeed;
-      }
-      user.clientSeed = clientSeed;
-      user.balance -= caseToOpen.price;
-      user.totalWagered += caseToOpen.price;
-      user.gamesPlayed += 1;
-      user.balance += winningItem.value;
-      user.totalWon += winningItem.value;
-      user.serverSeed = newServerSeed;
+      const netChange = winningItem.value - caseToOpen.price;
+      const updatedUser = await mongoose
+        .model("User")
+        .findOneAndUpdate(
+          {
+            _id: user._id,
+            balance: { $gte: caseToOpen.price },
+          },
+          {
+            $inc: {
+              balance: netChange,
+              totalWagered: caseToOpen.price,
+              gamesPlayed: 1,
+              totalWon: winningItem.value,
+            },
+            $set: {
+              clientSeed: clientSeed,
+              serverSeed: user.serverSeed || serverSeed,
+            },
+          },
+          {
+            session,
+            new: true,
+            runValidators: true,
+          }
+        );
 
-      await user.save({ session });
+      if (!updatedUser) {
+        throw HttpError(400, "Insufficient balance or user not found");
+      }
+
+      updatedUser.serverSeed = newServerSeed;
+      await updatedUser.save({ session });
 
       const opening = await CaseOpening.create(
         [
@@ -152,6 +179,45 @@ class CasesService {
 
       await session.commitTransaction();
 
+      const isWin = winningItem.value > caseToOpen.price;
+      const netWin = winningItem.value - caseToOpen.price;
+      leaderboardService
+        .updateStats(user._id, caseToOpen.price, netWin, isWin)
+        .catch((err) => {
+          console.error("Leaderboard update failed", {
+            userId: user._id.toString(),
+            error: err,
+          });
+        });
+
+      auditService
+        .log({
+          userId: user._id,
+          action: "OPEN_CASE",
+          entityType: "CaseOpening",
+          entityId: opening[0]._id,
+          oldValue: {
+            balance: oldBalance,
+            totalWagered: oldTotalWagered,
+            gamesPlayed: oldGamesPlayed,
+          },
+          newValue: {
+            balance: updatedUser.balance,
+            totalWagered: oldTotalWagered + caseToOpen.price,
+            gamesPlayed: oldGamesPlayed + 1,
+            caseId: caseToOpen._id.toString(),
+            casePrice: caseToOpen.price,
+            itemValue: winningItem.value,
+            itemId: winningItem.id,
+            roll: rollValue,
+          },
+          ipAddress,
+          userAgent,
+        })
+        .catch((err) => {
+          console.error("Audit log failed:", err);
+        });
+
       const wonItem: WonItem = {
         id: winningItem._id.toString(),
         name: winningItem.name,
@@ -167,7 +233,7 @@ class CasesService {
         clientSeed,
         nonce,
         roll: rollValue,
-        newBalance: user.balance,
+        newBalance: updatedUser.balance,
         casePrice: caseToOpen.price,
         itemValue: winningItem.value,
       };

@@ -4,6 +4,27 @@ let token = localStorage.getItem("token");
 let currentUser = null;
 let currentMinesGameId = null;
 
+/**
+ * Escapes HTML special characters to prevent XSS attacks
+ * @param {string} text - The text to escape
+ * @returns {string} - The escaped text
+ */
+function escapeHtml(text) {
+  if (typeof text !== "string") {
+    return String(text);
+  }
+  const map = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#x27;",
+    "/": "&#x2F;",
+  };
+  return text.replace(/[&<>"'/]/g, (char) => map[char]);
+}
+
+
 const authSection = document.getElementById("auth-section");
 const mainSection = document.getElementById("main-section");
 const userInfoEl = document.getElementById("user-info");
@@ -17,9 +38,13 @@ const authTitle = document.getElementById("auth-title");
 const tabCases = document.getElementById("tab-cases");
 const tabMines = document.getElementById("tab-mines");
 const tabBonus = document.getElementById("tab-bonus");
+const tabLeaderboard = document.getElementById("tab-leaderboard");
+const tabAudit = document.getElementById("tab-audit");
 const casesView = document.getElementById("cases-view");
 const minesView = document.getElementById("mines-view");
 const bonusView = document.getElementById("bonus-view");
+const leaderboardView = document.getElementById("leaderboard-view");
+const auditView = document.getElementById("audit-view");
 
 const minesAmountInput = document.getElementById("mines-amount");
 const minesCountInput = document.getElementById("mines-count");
@@ -73,8 +98,7 @@ async function register(username, email, password) {
     if (contentType && contentType.indexOf("application/json") !== -1) {
       data = await res.json();
     } else {
-      const text = await res.text();
-      console.error("Non-JSON response:", text);
+      await res.text();
       throw new Error("Server returned non-JSON response");
     }
 
@@ -119,7 +143,6 @@ async function loadUser() {
     loadCases();
     checkActiveMinesGame();
   } catch (err) {
-    console.error("LoadUser error:", err);
     showToast("Failed to load user: " + err.message, true);
     logout();
   }
@@ -157,6 +180,19 @@ function switchTab(tab) {
     bonusView.classList.add("hidden");
   }
 
+  if (tabLeaderboard) {
+    tabLeaderboard.classList.remove("active");
+    tabLeaderboard.classList.add("secondary");
+    leaderboardView.classList.add("hidden");
+    document.dispatchEvent(new CustomEvent("leaderboard:hidden"));
+  }
+
+  if (tabAudit) {
+    tabAudit.classList.remove("active");
+    tabAudit.classList.add("secondary");
+    auditView.classList.add("hidden");
+  }
+
   if (tab === "cases") {
     tabCases.classList.add("active");
     tabCases.classList.remove("secondary");
@@ -185,6 +221,20 @@ function switchTab(tab) {
       const event = new Event("bonus:shown");
       document.dispatchEvent(event);
     }
+  } else if (tab === "leaderboard") {
+    if (tabLeaderboard) {
+      tabLeaderboard.classList.add("active");
+      tabLeaderboard.classList.remove("secondary");
+      leaderboardView.classList.remove("hidden");
+      document.dispatchEvent(new CustomEvent("leaderboard:shown"));
+    }
+  } else if (tab === "audit") {
+    if (tabAudit) {
+      tabAudit.classList.add("active");
+      tabAudit.classList.remove("secondary");
+      auditView.classList.remove("hidden");
+      document.dispatchEvent(new CustomEvent("audit:shown"));
+    }
   }
 }
 
@@ -192,6 +242,8 @@ tabCases.addEventListener("click", () => switchTab("cases"));
 tabMines.addEventListener("click", () => switchTab("mines"));
 if (tabPlinko) tabPlinko.addEventListener("click", () => switchTab("plinko"));
 if (tabBonus) tabBonus.addEventListener("click", () => switchTab("bonus"));
+if (tabLeaderboard) tabLeaderboard.addEventListener("click", () => switchTab("leaderboard"));
+if (tabAudit) tabAudit.addEventListener("click", () => switchTab("audit"));
 
 async function loadCases() {
   try {
@@ -294,7 +346,6 @@ async function checkActiveMinesGame() {
       updateMinesControls(false);
     }
   } catch (err) {
-    console.error("Failed to check active mines game", err);
   }
 }
 
@@ -476,7 +527,6 @@ async function loadMinesHistory() {
     const data = await res.json();
     renderMinesHistory(data.games);
   } catch (err) {
-    console.error("Failed to load history", err);
   }
 }
 
@@ -537,10 +587,10 @@ function renderUser() {
   window.renderUser = renderUser;
   userInfoEl.innerHTML = `
     <div>
-      <h2 style="font-size: 1.25rem; font-weight: 600;">${
+      <h2 style="font-size: 1.25rem; font-weight: 600;">${escapeHtml(
         currentUser.username
-      }</h2>
-      <p style="color: var(--text-dim);">${currentUser.email}</p>
+      )}</h2>
+      <p style="color: var(--text-dim);">${escapeHtml(currentUser.email)}</p>
     </div>
     <div style="text-align: right;">
       <div style="font-size: 1.5rem; color: var(--accent-success); font-weight: 700;">$${currentUser.balance.toFixed(
@@ -647,7 +697,7 @@ function showWinModal(winningItem, allItems = []) {
         if (isValidUrl(itemImage)) {
           itemIcon = `<img src="${itemImage}" alt="${
             item.name || "Item"
-          }" style="width: 100%; height: 100%; object-fit: cover; border-radius: 0.25rem;" onerror="console.error('Image failed to load:', '${itemImage}'); this.style.display='none'; this.parentElement.innerHTML='<div style=\\'font-size: 2rem;\\'>📦</div>';">`;
+          }" style="width: 100%; height: 100%; object-fit: cover; border-radius: 0.25rem;" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'font-size: 2rem;\\'>📦</div>';">`;
         } else {
           itemIcon = `<div style="font-size: 2rem;">${itemImage}</div>`;
         }

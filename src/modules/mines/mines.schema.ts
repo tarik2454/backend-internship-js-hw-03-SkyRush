@@ -1,11 +1,9 @@
 import { z } from "zod";
 import { isValidObjectId } from "mongoose";
 
-const objectIdSchema = z
-  .string()
-  .refine((val) => isValidObjectId(val), {
-    message: "Invalid ObjectId format",
-  });
+const objectIdSchema = z.string().refine((val) => isValidObjectId(val), {
+  message: "Invalid ObjectId format",
+});
 
 export const startMineSchema = z.object({
   amount: z
@@ -33,6 +31,12 @@ export const cashoutMineSchema = z.object({
   gameId: objectIdSchema,
 });
 
+export const getHistorySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(10).optional().default(10),
+  offset: z.coerce.number().int().min(0).optional().default(0),
+});
+
 export type StartMineDTO = z.infer<typeof startMineSchema>;
 export type RevealMineDTO = z.infer<typeof revealMineSchema>;
 export type CashoutMineDTO = z.infer<typeof cashoutMineSchema>;
+export type GetHistoryDTO = z.infer<typeof getHistorySchema>;

@@ -3,7 +3,7 @@ import { Request, Response, NextFunction } from "express";
 type ControllerFunction<Req extends Request = Request> = (
   req: Req,
   res: Response,
-  next: NextFunction
+  next?: NextFunction
 ) => Promise<void> | void;
 
 export const ctrlWrapper = <Req extends Request = Request>(

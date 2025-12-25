@@ -74,7 +74,6 @@ document.addEventListener("DOMContentLoaded", () => {
         currentMultipliers = data.multipliers || [];
       }
     } catch (error) {
-      console.error("Failed to load multipliers:", error);
       currentMultipliers = getDefaultMultipliers(lines, risk);
     }
   }
@@ -173,7 +172,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const data = await response.json();
-        console.log("Drop result:", data);
 
         const finalBalance =
           data.newBalance !== undefined
@@ -185,6 +183,14 @@ document.addEventListener("DOMContentLoaded", () => {
           totalWin: data.totalWin || 0,
           totalBet: data.totalBet || totalBet,
           ballsCount: balls,
+          historyData: {
+            bet: bet,
+            balls: balls,
+            lines: lines,
+            risk: risk,
+            multiplier: (data.totalWin / data.totalBet).toFixed(2),
+            winAmount: data.totalWin,
+          },
         };
 
         if (data.drops && data.drops.length > 0) {
@@ -208,17 +214,7 @@ document.addEventListener("DOMContentLoaded", () => {
           applyBalanceUpdate();
           playBtn.disabled = false;
         }
-
-        addToHistory({
-          bet: bet,
-          balls: balls,
-          lines: lines,
-          risk: risk,
-          multiplier: (data.totalWin / data.totalBet).toFixed(2),
-          winAmount: data.totalWin,
-        });
       } catch (error) {
-        console.error("Error:", error);
         alert(error.message);
         if (playBtn) playBtn.disabled = false;
       }
@@ -333,7 +329,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const { newBalance } = pendingBalanceUpdate;
+    const { newBalance, historyData } = pendingBalanceUpdate;
 
     if (newBalance !== undefined) {
       window.currentUser.balance = newBalance;
@@ -348,6 +344,10 @@ document.addEventListener("DOMContentLoaded", () => {
           bubbles: true,
         })
       );
+    }
+
+    if (historyData) {
+      addToHistory(historyData);
     }
 
     pendingBalanceUpdate = null;
@@ -476,7 +476,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const token = localStorage.getItem("token");
       if (!token) return;
 
-      const response = await fetch("/api/plinko/history?limit=50", {
+      const response = await fetch("/api/plinko/history?limit=10", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -501,7 +501,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     } catch (error) {
-      console.error("Failed to load history:", error);
     }
   }
 
